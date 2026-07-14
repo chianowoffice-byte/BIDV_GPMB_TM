@@ -321,7 +321,8 @@
         <span id="roleLabel">Cán bộ nhập liệu</span>
         <div class="switch" id="roleSwitch" onclick="toggleRole()"></div>
       </div>
-      <div class="sync-ok"><span class="dot"></span>Đồng bộ realtime</div>
+      <button id="pendingBadge" onclick="dongBoNgay()" style="display:none; align-items:center; gap:6px; padding:6px 12px; border-radius:20px; border:1px solid #F0D8AE; background:var(--warn-soft); color:var(--warn); font-size:12px; font-weight:700; cursor:pointer;" title="Bấm để đồng bộ ngay lên Google Sheet"></button>
+      <div class="sync-ok"><span class="dot"></span>Đã kết nối Google Sheet</div>
       <div style="display:flex; align-items:center; gap:9px;">
         <div class="avatar">VA</div>
         <div style="line-height:1.25;">
@@ -711,7 +712,7 @@
 // =========================================================
 // KET NOI BACKEND: dan URL Web App cua Apps Script (Code.gs) vao day sau khi Deploy
 // =========================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbz8DdF52EtEjpUfmhcIz38u7bteMs6rpt5cZECst2YmoxCgCjbW1v1jXgYTAdfQEXYtjA/exec";
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 async function apiGet(action, params){
   const qs = new URLSearchParams({ action, ...(params||{}) });
@@ -740,6 +741,103 @@ async function withBusyGuard(fn){
   try{ await fn(); }
   finally{ busyAction = false; }
 }
+
+// =========================================================
+// HANG DOI LUU TAM (per-tab) + DONG BO KHI CHUYEN TAB
+// =========================================================
+// Ly do: Google Sheets qua Apps Script co do tre - neu goi API ngay khi bam nut, nguoi dung de
+// bam nhieu lan (do tuong chua an) se tao NHIEU DONG TRUNG NHAU. Giai phap: moi thao tac ghi du
+// lieu duoc xep vao 1 HANG DOI LUU TAM trong bo nho (mirror sang sessionStorage - rieng cho tung
+// tab trinh duyet), CHONG TRUNG theo "dedupKey" ngay tai buoc xep hang (bam lai y het se bi bo
+// qua), roi CHI GUI LEN GOOGLE SHEET khi nguoi dung chuyen sang 1 tab/menu khac trong ung dung
+// (hoac dong trang / bam nut "Dong bo ngay").
+const QUEUE_KEY = 'gpmb_pending_queue_v1';
+let pendingQueue = [];
+try{
+  const saved = sessionStorage.getItem(QUEUE_KEY);
+  if(saved) pendingQueue = JSON.parse(saved);
+}catch(e){ pendingQueue = []; }
+
+function savePendingQueue(){
+  try{ sessionStorage.setItem(QUEUE_KEY, JSON.stringify(pendingQueue)); }catch(e){}
+  renderPendingBadge();
+}
+function renderPendingBadge(){
+  const el = document.getElementById('pendingBadge');
+  if(!el) return;
+  if(pendingQueue.length===0){ el.style.display='none'; return; }
+  el.style.display='inline-flex';
+  el.textContent = `🔄 ${pendingQueue.length} thay đổi chưa đồng bộ`;
+}
+
+/**
+ * Xep 1 thao tac ghi du lieu vao hang doi thay vi goi API ngay.
+ * dedupKey: chuoi dinh danh noi dung thao tac - neu trung voi 1 item CHUA duoc dong bo trong
+ * hang doi, se BO QUA (khong xep them), tranh tao nhieu dong giong het nhau do bam nhieu lan.
+ */
+function queueAction(action, payload, dedupKey, label, replace){
+  const trung = pendingQueue.find(q => q.dedupKey === dedupKey);
+  if(trung){
+    if(replace){
+      trung.payload = payload; trung.ts = Date.now();
+      savePendingQueue();
+      toast(`💾 Đã cập nhật lưu tạm: ${label}`);
+      return true;
+    }
+    toast(`⏳ Yêu cầu này đã được lưu tạm trước đó (${label}) — không thêm trùng`);
+    return false;
+  }
+  pendingQueue.push({ action, payload, dedupKey, label, ts: Date.now() });
+  savePendingQueue();
+  toast(`💾 Đã lưu tạm: ${label} — sẽ đồng bộ lên Google Sheet khi chuyển tab`);
+  return true;
+}
+
+/** Gui tuan tu toan bo hang doi len server. Neu 1 muc loi, GIU LAI trong hang doi de thu lai sau. */
+async function flushPendingQueue(silent){
+  if(pendingQueue.length===0) return;
+  const dangXuLy = pendingQueue.slice();
+  const conLai = [];
+  const ketQua = [];
+  if(!silent) toast(`⏳ Đang đồng bộ ${dangXuLy.length} thay đổi lên Google Sheet...`);
+  for(const item of dangXuLy){
+    try{
+      const res = await apiPost(item.action, item.payload);
+      if(res && res.success===false){
+        conLai.push(item);
+        ketQua.push(`❌ ${item.label}: ${res.error||'lỗi không rõ'}`);
+      } else {
+        ketQua.push(`✅ ${item.label}`);
+      }
+    }catch(err){
+      conLai.push(item); // loi mang - giu lai, thu lai lan dong bo sau
+      ketQua.push(`❌ ${item.label}: ${err.message}`);
+    }
+  }
+  pendingQueue = conLai;
+  savePendingQueue();
+  const soLoi = conLai.length;
+  if(soLoi>0){
+    toast(`⚠ Đồng bộ xong nhưng còn ${soLoi} việc lỗi (vẫn giữ trong hàng đợi để thử lại): ${ketQua.filter(k=>k.startsWith('❌')).join(' | ')}`);
+  } else if(!silent){
+    toast(`✅ Đã đồng bộ xong ${dangXuLy.length} thay đổi lên Google Sheet`);
+  }
+  await refreshAllData();
+}
+async function dongBoNgay(){
+  if(pendingQueue.length===0){ toast('Không có thay đổi nào đang chờ đồng bộ'); return; }
+  await flushPendingQueue(false);
+}
+// Dong bo "best effort" khi dong/roi tab trinh duyet (khong dam bao 100% vi day la thao tac async,
+// nhung sessionStorage da luu san hang doi nen mo lai tab se khong mat du lieu, co the dong bo lai).
+window.addEventListener('beforeunload', ()=>{
+  if(pendingQueue.length>0){
+    try{
+      navigator.sendBeacon(API_URL, new Blob([JSON.stringify({ action:'__flush_hint__' })], {type:'text/plain'}));
+    }catch(e){}
+  }
+});
+
 
 // Du lieu noi bo (duoc NAP LAI moi khi refreshAllData() chay) - giu nguyen ten bien/truong
 // nhu ban demo de toan bo logic render/tinh toan phia duoi KHONG can sua.
@@ -1060,25 +1158,21 @@ function renderDotStatus(){
     btnKhoa.classList.add('blocked');
   }
 }
-async function taoDotMoi(){
+function taoDotMoi(){
   if(currentOpenDot){
     toast(`❌ Đợt ${currentOpenDot} đang mở — phải khóa đợt này trước khi tạo đợt mới`);
     return;
   }
-  const res = await apiPost('taoDotMoi');
-  if(!res.success){ toast('❌ ' + res.error); return; }
-  toast(`Đã tạo Đợt ${res.soDot} — bắt đầu nhập hộ dân cho đợt này`);
-  await refreshAllData();
+  const dedupKey = `taoDotMoi:pending`; // chi 1 dot moi duoc xep hang tai 1 thoi diem (dung quy tac chi 1 dot mo)
+  queueAction('taoDotMoi', {}, dedupKey, 'Tạo đợt mới');
 }
-async function khoaDotHienTai(){
+function khoaDotHienTai(){
   if(!currentOpenDot){ toast('❌ Không có đợt nào đang mở'); return; }
   const soHo = data.filter(h=>h.dot===currentOpenDot).length;
   if(soHo===0){ toast(`❌ Đợt ${currentOpenDot} chưa có hộ nào, không thể khóa`); return; }
   if(!confirm(`Xác nhận KHÓA Đợt ${currentOpenDot} (${soHo} hộ)? Sau khi khóa sẽ KHÔNG thể thêm hộ mới vào đợt này nữa.`)) return;
-  const res = await apiPost('khoaDot', { soDot: currentOpenDot });
-  if(!res.success){ toast('❌ ' + res.error); return; }
-  toast(`Đã khóa Đợt ${res.soDot} (${res.soHo} hộ) — có thể sang bước Rút tiền từ DA`);
-  await refreshAllData();
+  const dedupKey = `khoaDot:${currentOpenDot}`;
+  queueAction('khoaDot', { soDot: currentOpenDot }, dedupKey, `Khóa Đợt ${currentOpenDot}`);
 }
 renderDotStatus();
 
@@ -1108,6 +1202,10 @@ document.querySelectorAll('.navitem').forEach(item=>{
     document.getElementById('page-'+item.dataset.page).style.display='block';
     if(item.dataset.page==='kehoach'){
       document.getElementById('plan_ngay_top').value = tomorrowISO();
+    }
+    // Chuyen tab la thoi diem dong bo hang doi luu tam len Google Sheet (khong chan viec chuyen trang)
+    if(pendingQueue.length>0){
+      flushPendingQueue(true);
     }
   });
 });
@@ -1172,11 +1270,10 @@ async function addRow(){
     ngayBanGiao: document.getElementById('f_ngaybg').value,
     gioBanGiao: document.getElementById('f_giobg').value,
   };
-  const res = await apiPost('themHoDan', payload);
-  if(!res.success){ toast('❌ ' + res.error); return; }
+  const dedupKey = `themHoDan:${currentOpenDot}:${name}:${qd}:${ngayQD}:${tong}:${tdc}`;
+  const daXep = queueAction('themHoDan', payload, dedupKey, `Thêm hộ "${name}" (Đợt ${currentOpenDot})`);
+  if(!daXep) return;
   closeModal();
-  toast(`Đã thêm hộ ${res.id} vào Đợt ${res.dot} — CHƯA có Ngày Rút DA, cần xử lý ở menu "Rút tiền từ DA"`);
-  await refreshAllData();
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
   document.querySelector('[data-page="hodan"]').classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.style.display='none');
@@ -1442,16 +1539,11 @@ async function saveTxn(){
   const ghichu = document.getElementById('tx_ghichu').value;
   if(sotien<=0){ toast('❌ Nhập số tiền hợp lệ'); return; }
 
-  const res = await apiPost('themGiaoDich', { ngay, loai, sotien, nh, dot, ghichu, nguoi: 'Nguyễn Việt Anh' });
-  if(!res.success){ toast('❌ ' + res.error); return; }
-
+  const dedupKey = `themGiaoDich:${ngay}:${loai}:${nh}:${dot||''}:${sotien}`;
+  const nhanLabel = `${loai} (${nh})${dot?(' - Đợt '+dot):''} - ${fmt(sotien)}`;
+  const daXep = queueAction('themGiaoDich', { ngay, loai, sotien, nh, dot, ghichu, nguoi: 'Nguyễn Việt Anh' }, dedupKey, nhanLabel);
+  if(!daXep) return;
   closeTxnModal();
-  if(res.soHoHuy > 0){
-    toast(`Đã nộp lại ${fmt(res.soTienNop)} về ${nh} — đồng thời GỠ ${res.soHoHuy} hộ đang chờ chi trả thuộc khoản này (tiền đã trả về ngân hàng, cần lập kế hoạch rút mới nếu muốn chi tiếp)`);
-  } else {
-    toast('Đã lưu giao dịch: ' + loai + (dot?(' - Đợt '+dot):'') + ' (' + nh + ') - ' + fmt(res.soTienNop || sotien));
-  }
-  await refreshAllData();
 }
 
 // =========================================================
@@ -1533,21 +1625,19 @@ function updateRutDASelectedInfo(){
   document.getElementById('rutdaSelectedTotal').textContent = fmt(tong);
 }
 function taoLenhRutDA(){
-  withBusyGuard(async ()=>{
-    if(!rutdaSelectedDot){ toast('❌ Chưa chọn đợt'); return; }
-    if(selectedRutDAIds.size===0){ toast('❌ Chưa tích chọn hộ nào'); return; }
-    const existingBank = dotFundedBank(rutdaSelectedDot);
-    const bankSelectEl = document.getElementById('rutdaBankSelect');
-    const bank = existingBank || (bankSelectEl ? bankSelectEl.value : 'NH1');
-    const ids = [...selectedRutDAIds];
-    const tong = ids.reduce((s,id)=>{ const h=data.find(x=>x.id===id); return s+(h?h.nhan:0); },0);
-    if(!confirm(`Xác nhận RÚT ${fmt(tong)} từ Dự án cho ${ids.length} hộ (Đợt ${rutdaSelectedDot}, ${bank})?`)) return;
-    const res = await apiPost('rutTienTuDA', { soDot: rutdaSelectedDot, nganHang: bank, hoIds: ids, nguoi: 'Nguyễn Việt Anh' });
-    if(!res.success){ toast('❌ ' + res.error); return; }
-    selectedRutDAIds.clear();
-    toast(`Đã rút ${fmt(res.soTien)} về ${res.nganHang} cho ${res.soHo} hộ — đã cập nhật Ngày Rút DA`);
-    await refreshAllData();
-  });
+  if(!rutdaSelectedDot){ toast('❌ Chưa chọn đợt'); return; }
+  if(selectedRutDAIds.size===0){ toast('❌ Chưa tích chọn hộ nào'); return; }
+  const existingBank = dotFundedBank(rutdaSelectedDot);
+  const bankSelectEl = document.getElementById('rutdaBankSelect');
+  const bank = existingBank || (bankSelectEl ? bankSelectEl.value : 'NH1');
+  const ids = [...selectedRutDAIds].sort();
+  const tong = ids.reduce((s,id)=>{ const h=data.find(x=>x.id===id); return s+(h?h.nhan:0); },0);
+  if(!confirm(`Xác nhận RÚT ${fmt(tong)} từ Dự án cho ${ids.length} hộ (Đợt ${rutdaSelectedDot}, ${bank})?`)) return;
+  const dedupKey = `rutTienTuDA:${rutdaSelectedDot}:${bank}:${ids.join(',')}`;
+  const daXep = queueAction('rutTienTuDA', { soDot: rutdaSelectedDot, nganHang: bank, hoIds: ids, nguoi: 'Nguyễn Việt Anh' }, dedupKey, `Rút DA ${fmt(tong)} - Đợt ${rutdaSelectedDot} (${ids.length} hộ)`);
+  if(!daXep) return;
+  selectedRutDAIds.clear();
+  renderRutDAChecklist();
 }
 
 // =========================================================
@@ -1591,12 +1681,10 @@ function renderChiTra(){
     body.appendChild(tr);
   });
 }
-async function lockPayment(idx){
+function lockPayment(idx){
   const p = payments[idx];
-  const res = await apiPost('khoaChiTra', { hoId: p.hoId, ngay: p.ngay });
-  if(!res.success){ toast('❌ ' + (res.error||'Không khóa được')); return; }
-  toast('Đã khóa dữ liệu chi trả — sẵn sàng in 2 biên bản');
-  await refreshAllData();
+  const dedupKey = `khoaChiTra:${p.hoId}:${p.ngay}`;
+  queueAction('khoaChiTra', { hoId: p.hoId, ngay: p.ngay }, dedupKey, `Khóa dữ liệu chi trả ${p.hoId}`);
 }
 function printBienBan(idx, loai){
   const p = payments[idx];
@@ -1727,21 +1815,14 @@ function updateReadyCount(){
   document.getElementById('readyCount').textContent = selectedReadyIds.size;
 }
 function chiTraHangLoat(){
-  withBusyGuard(async ()=>{
-    if(selectedReadyIds.size===0){ toast('❌ Chưa chọn hộ nào để chi trả'); return; }
-    const execDate = getExecDate();
-    const hoIds = [...selectedReadyIds];
-    const res = await apiPost('chiTraHangLoat', { ngayThucHien: execDate, hoIds, nguoiChi: 'Nguyễn Việt Anh' });
-    if(!res.success){
-      toast('❌ ' + (res.errors && res.errors.length ? res.errors.join('; ') : (res.error||'Không chi trả được')));
-      return;
-    }
-    selectedReadyIds.clear();
-    let msg = `✅ Đã chi trả ${res.done} hộ, tổng ${fmt(res.tongTien)} (ngày ${dmy(execDate)})`;
-    if(res.errors && res.errors.length) msg += ` — Bỏ qua: ${res.errors.join('; ')}`;
-    toast(msg);
-    await refreshAllData();
-  });
+  if(selectedReadyIds.size===0){ toast('❌ Chưa chọn hộ nào để chi trả'); return; }
+  const execDate = getExecDate();
+  const hoIds = [...selectedReadyIds].sort();
+  const dedupKey = `chiTraHangLoat:${execDate}:${hoIds.join(',')}`;
+  const daXep = queueAction('chiTraHangLoat', { ngayThucHien: execDate, hoIds, nguoiChi: 'Nguyễn Việt Anh' }, dedupKey, `Chi trả ${hoIds.length} hộ ngày ${dmy(execDate)}`);
+  if(!daXep) return;
+  selectedReadyIds.clear();
+  renderReadyList();
 }
 
 function openPayModal(preselectHoId){
@@ -1790,19 +1871,16 @@ function updatePayCheck(){
   return true;
 }
 function savePay(){
-  withBusyGuard(async ()=>{
-    if(!updatePayCheck()){ toast('❌ Không thể lưu — kiểm tra lại ngày/ngân hàng (có thể còn tồn quá hạn cần xử lý trước)'); return; }
-    const hoId = document.getElementById('pay_ho').value;
-    const ngay = document.getElementById('pay_ngay').value;
-    const nh = document.getElementById('pay_nh').value;
-    const h = data.find(x=>x.id===hoId);
-    if(!h){ toast('Vui lòng chọn hộ'); return; }
-    const res = await apiPost('chiTraThuCong', { hoId, ngay, nh, nguoiChi: 'Nguyễn Việt Anh' });
-    if(!res.success){ toast('❌ ' + res.error); return; }
-    closePayModal();
-    toast(`Đã ghi nhận chi trả ${h.name}: ${fmt(res.soTienChi)} + lãi ${fmt(res.lai)} (NH ${nh})`);
-    await refreshAllData();
-  });
+  if(!updatePayCheck()){ toast('❌ Không thể lưu — kiểm tra lại ngày/ngân hàng (có thể còn tồn quá hạn cần xử lý trước)'); return; }
+  const hoId = document.getElementById('pay_ho').value;
+  const ngay = document.getElementById('pay_ngay').value;
+  const nh = document.getElementById('pay_nh').value;
+  const h = data.find(x=>x.id===hoId);
+  if(!h){ toast('Vui lòng chọn hộ'); return; }
+  const dedupKey = `chiTraThuCong:${hoId}:${ngay}:${nh}`;
+  const daXep = queueAction('chiTraThuCong', { hoId, ngay, nh, nguoiChi: 'Nguyễn Việt Anh' }, dedupKey, `Chi trả thủ công ${h.name}`);
+  if(!daXep) return;
+  closePayModal();
 }
 
 // =========================================================
@@ -1881,24 +1959,20 @@ function updateCheckedCount(){
   document.getElementById('checkedCount').textContent = selectedPlanIds.size;
 }
 function addSelectedToPlan(){
-  withBusyGuard(async ()=>{
-    if(selectedPlanIds.size===0){ toast('❌ Chưa tích chọn hộ nào'); return; }
-    const ngay = document.getElementById('plan_ngay_top').value;
-    if(!ngay){ toast('❌ Vui lòng chọn ngày dự kiến chi trả'); return; }
-    if(ngay < TODAY_ISO){
-      toast(`❌ Ngày dự kiến chi trả phải TỪ HÔM NAY (${dmy(TODAY_ISO)}) TRỞ ĐI — không thể lập kế hoạch cho ngày đã qua`);
-      return;
-    }
-    const nhChon = document.getElementById('plan_nh_top').value;
-    const hoIds = [...selectedPlanIds];
-    const res = await apiPost('themKeHoach', { ngay, nh: nhChon, hoIds });
-    if(!res.success && res.added===0){ toast('❌ ' + (res.errors ? res.errors.join('; ') : (res.error||'Không thêm được'))); return; }
-    selectedPlanIds.clear();
-    let msg = `Đã thêm ${res.added} hộ vào kế hoạch chi trả ngày ${dmy(ngay)}`;
-    if(res.errors && res.errors.length) msg += ` — Bỏ qua: ${res.errors.join('; ')}`;
-    toast(msg);
-    await refreshAllData();
-  });
+  if(selectedPlanIds.size===0){ toast('❌ Chưa tích chọn hộ nào'); return; }
+  const ngay = document.getElementById('plan_ngay_top').value;
+  if(!ngay){ toast('❌ Vui lòng chọn ngày dự kiến chi trả'); return; }
+  if(ngay < TODAY_ISO){
+    toast(`❌ Ngày dự kiến chi trả phải TỪ HÔM NAY (${dmy(TODAY_ISO)}) TRỞ ĐI — không thể lập kế hoạch cho ngày đã qua`);
+    return;
+  }
+  const nhChon = document.getElementById('plan_nh_top').value;
+  const hoIds = [...selectedPlanIds].sort();
+  const dedupKey = `themKeHoach:${ngay}:${nhChon}:${hoIds.join(',')}`;
+  const daXep = queueAction('themKeHoach', { ngay, nh: nhChon, hoIds }, dedupKey, `Thêm ${hoIds.length} hộ vào kế hoạch ngày ${dmy(ngay)}`);
+  if(!daXep) return;
+  selectedPlanIds.clear();
+  renderPlanChecklist();
 }
 
 let planViewBankFilter = 'all';
@@ -1972,23 +2046,19 @@ function renderPlanSummary(){
     sumBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px;">Chưa có kế hoạch nào</td></tr>';
   }
 }
-async function removePlan(idx){
+function removePlan(idx){
   const p = plan[idx];
   if(!p) return;
-  const res = await apiPost('huyKeHoach', { hoId: p.hoId });
-  if(!res.success){ toast('❌ ' + (res.error||'Không xóa được')); return; }
-  toast('Đã xóa hộ khỏi kế hoạch');
-  await refreshAllData();
+  const dedupKey = `huyKeHoach:${p.hoId}`;
+  queueAction('huyKeHoach', { hoId: p.hoId }, dedupKey, `Xóa ${p.hoId} khỏi kế hoạch`);
 }
-async function huyTatCaKeHoach(){
+function huyTatCaKeHoach(){
   const targets = plan.filter(p => planViewBankFilter==='all' || p.nh===planViewBankFilter);
   if(targets.length===0){ toast('❌ Không có hộ nào trong kế hoạch để hủy'); return; }
   const label = planViewBankFilter==='all' ? 'TOÀN BỘ' : `ngân hàng ${planViewBankFilter}`;
   if(!confirm(`Xác nhận HỦY ${targets.length} hộ (${label}) khỏi kế hoạch chi trả? Hành động này không hoàn tác được.`)) return;
-  const res = await apiPost('huyKeHoach', { nh: planViewBankFilter });
-  if(!res.success){ toast('❌ ' + (res.error||'Không hủy được')); return; }
-  toast(`Đã hủy ${res.deleted} hộ khỏi kế hoạch (${label})`);
-  await refreshAllData();
+  const dedupKey = `huyKeHoach:nh:${planViewBankFilter}:${Date.now()}`; // luon la 1 lenh moi (huy hang loat), khong nen bi gop
+  queueAction('huyKeHoach', { nh: planViewBankFilter }, dedupKey, `Hủy kế hoạch (${label})`);
 }
 
 function changeWorkingDate(newDate){
@@ -2032,19 +2102,17 @@ function loadConfigFormValues(){
   document.getElementById('cf_laiSuatTraDan').value = (config.laiSuatTraDan*100).toFixed(3);
   document.getElementById('cf_soNgayNam').value = config.soNgayNam;
 }
-async function saveConfigGeneral(){
+function saveConfigGeneral(){
   const tenDuAn = document.getElementById('cf_tenDuAn').value;
   const phuong = document.getElementById('cf_phuong').value;
   const pct = parseFloat(document.getElementById('cf_laiSuatTraDan').value);
   const nd = parseInt(document.getElementById('cf_soNgayNam').value);
-  const res = await apiPost('luuCauHinh', {
+  const dedupKey = 'luuCauHinh';
+  queueAction('luuCauHinh', {
     tenDuAn, phuong,
     laiSuatTraDan: isNaN(pct) ? undefined : pct,
     soNgayNam: isNaN(nd) ? undefined : nd,
-  });
-  if(!res.success){ toast('❌ ' + (res.error||'Không lưu được')); return; }
-  toast('✅ Đã lưu tham số chung — áp dụng ngay cho mọi công thức tính lãi trong hệ thống');
-  await refreshAllData();
+  }, dedupKey, 'Lưu tham số chung', true);
 }
 
 function renderBankConfig(){
@@ -2065,40 +2133,33 @@ function renderBankConfig(){
     body.appendChild(tr);
   });
 }
-async function updateBankField(id, field, value){
-  const res = await apiPost('suaNganHang', { id, field, value });
-  if(!res.success){ toast('❌ ' + (res.error||'Không cập nhật được')); return; }
-  toast(`Đã cập nhật ${field} cho ${id}`);
-  await refreshAllData();
+function updateBankField(id, field, value){
+  const dedupKey = `suaNganHang:${id}:${field}`;
+  queueAction('suaNganHang', { id, field, value }, dedupKey, `Sửa ${field} của ${id}`, true);
 }
-async function addBank(){
-  const res = await apiPost('themNganHang', { name:"Ngân hàng mới", stk:"", branch:"", kkh:0.001, lienHe:"", ghichu:"" });
-  if(!res.success){ toast('❌ ' + (res.error||'Không thêm được')); return; }
-  toast(`Đã thêm ${res.id} — sửa thông tin ngay trong bảng`);
-  await refreshAllData();
+function addBank(){
+  const dedupKey = `themNganHang:${Date.now()}`; // moi lan bam la 1 ngan hang moi, khong nen gop
+  queueAction('themNganHang', { name:"Ngân hàng mới", stk:"", branch:"", kkh:0.001, lienHe:"", ghichu:"" }, dedupKey, 'Thêm ngân hàng mới');
 }
-async function removeBank(id){
+function removeBank(id){
   if(!confirm(`Xác nhận xóa ${id} khỏi danh mục ngân hàng?`)) return;
-  const res = await apiPost('xoaNganHang', { id });
-  if(!res.success){ toast('❌ ' + (res.error||'Không xóa được')); return; }
-  toast(`Đã xóa ${id}`);
-  await refreshAllData();
+  const dedupKey = `xoaNganHang:${id}`;
+  queueAction('xoaNganHang', { id }, dedupKey, `Xóa ngân hàng ${id}`);
 }
 
 loadConfigFormValues();
 renderBankConfig();
-
 document.getElementById('chitra_ngay_thuchien').value = TODAY_ISO;
-renderTable(getHodanFiltered());
-renderRutNop();
-renderChiTra();
-renderPlan();
-renderPlanSummary();
-renderPlanChecklist();
-renderReadyBankChips();
-renderReadyList();
-renderRutDADotChips();
-renderRutDAChecklist();
+renderPendingBadge();
+
+// Nap du lieu that tu Google Sheet ngay khi mo trang (truoc day file nay CHUA goi ham nay khi tai
+// trang, khien man hinh trong cho den khi co 1 thao tac nao do vo tinh kich hoat refresh).
+refreshAllData().then(()=>{
+  if(pendingQueue.length>0){
+    toast(`🔄 Phát hiện ${pendingQueue.length} thay đổi từ phiên trước chưa đồng bộ — đang đồng bộ lại...`);
+    flushPendingQueue(true);
+  }
+});
 </script>
 </body>
 </html>
