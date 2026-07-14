@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>GPMB Tương Mai — Mô phỏng Web App (Phương án B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#00695C;
+    --navy-deep:#00453C;
+    --teal:#F2A93D;
+    --teal-soft:#FCF1DC;
+    --bg:#F5F7F6;
+    --surface:#FFFFFF;
+    --text:#1C2733;
+    --muted:#6B7785;
+    --border:#E3E7ED;
+    --success:#1B8A5A;
+    --success-soft:#E7F5EE;
+    --warn:#C97A26;
+    --warn-soft:#FBF0E2;
+    --danger:#C23B3B;
+    --danger-soft:#FBEAEA;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    min-height:100vh;
+    font-size:14px;
+  }
+  h1,h2,h3,.brand,.navlabel,.kpi-val{font-family:'Be Vietnam Pro',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace; font-variant-numeric: tabular-nums;}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:236px; flex-shrink:0; background:var(--navy-deep);
+    background-image: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:#fff; display:flex; flex-direction:column; padding:22px 14px;
+  }
+  .brand{font-size:16px; font-weight:800; letter-spacing:.2px; padding:0 10px 4px;}
+  .brand small{display:block; font-family:'Inter'; font-weight:400; font-size:11px; color:#9FB3CC; margin-top:3px;}
+  .brand-logo{padding:6px 10px 4px;}
+  .brand-branch{
+    text-align:center; color:#FFFFFF; font-weight:700; font-size:13px; letter-spacing:.3px;
+    margin-top:2px; font-family:'Be Vietnam Pro',sans-serif;
+  }
+  .brand-slogan{
+    text-align:center; color:#CFE8E3; font-size:11px; font-style:italic; line-height:1.45;
+    padding:6px 14px 0; font-family:'Inter';
+  }
+  .branch-info{font-size:11px; color:#B9DDD6; line-height:1.7; margin-bottom:10px;}
+  .branch-info b{display:block; color:#fff; font-size:12px; margin-bottom:2px;}
+  .sync-line{padding-top:10px; border-top:1px solid rgba(255,255,255,.12); font-size:11px; color:#7C8FA8; line-height:1.6;}
+  .today-badge{
+    margin:14px 10px 4px; padding:8px 12px; background:rgba(242,169,61,.15); border:1px solid rgba(242,169,61,.4);
+    border-radius:8px; font-size:12px; color:#B9EAE8;
+  }
+  .today-badge small{display:block; font-size:10px; color:#8FC9C7; margin-top:4px; font-family:'Inter';}
+  .today-badge b{color:#fff; font-family:'IBM Plex Mono',monospace;}
+  nav{margin-top:26px; display:flex; flex-direction:column; gap:2px;}
+  .navitem{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px;
+    color:#C7D4E6; cursor:pointer; font-size:13.5px; font-weight:500; transition:.15s;
+  }
+  .navitem svg{width:16px; height:16px; opacity:.85; flex-shrink:0;}
+  .navitem:hover{background:rgba(255,255,255,.06); color:#fff;}
+  .navitem.active{background:var(--teal); color:#04211F; font-weight:600;}
+  .navitem.active svg{opacity:1;}
+  .sidebar-foot{margin-top:auto; padding:12px 10px; font-size:11px; color:#7C8FA8; border-top:1px solid rgba(255,255,255,.08); line-height:1.6;}
+  .dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:#3FD59C; margin-right:6px;}
+
+  /* MAIN */
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{
+    height:60px; background:var(--surface); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; padding:0 24px; gap:16px; flex-shrink:0;
+  }
+  .search{
+    flex:1; max-width:360px; display:flex; align-items:center; gap:8px;
+    background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px;
+    color:var(--muted);
+  }
+  .search input{border:none; background:none; outline:none; font-size:13px; width:100%; color:var(--text);}
+  .topbar-right{margin-left:auto; display:flex; align-items:center; gap:18px; font-size:12.5px; color:var(--muted);}
+  .sync-ok{display:flex; align-items:center; gap:6px; color:var(--success); font-weight:600;}
+  .avatar{width:30px; height:30px; border-radius:50%; background:var(--teal); color:#04211F; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;}
+
+  .content{padding:24px 28px 40px; overflow-y:auto;}
+  .page-title{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px;}
+  .page-title h1{font-size:20px; font-weight:700;}
+  .page-title p{font-size:12.5px; color:var(--muted); margin-top:3px; font-family:'Inter';}
+
+  .btn{
+    border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600;
+    cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.15s;
+  }
+  .btn-primary{background:var(--navy); color:#fff;}
+  .btn-primary:hover{background:var(--navy-deep);}
+  .btn-teal{background:var(--teal); color:#04211F;}
+  .btn-teal:hover{filter:brightness(0.95);}
+  .btn-ghost{background:var(--surface); color:var(--text); border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--bg);}
+
+  /* KPI CARDS */
+  .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
+  .kpi{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; position:relative; overflow:hidden;}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent,var(--teal));}
+  .kpi-label{font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px;}
+  .kpi-val{font-size:21px; font-weight:800; margin-top:6px;}
+  .kpi-sub{font-size:11.5px; color:var(--muted); margin-top:4px;}
+  .kpi-sub b{color:var(--success);}
+
+  /* PROGRESS */
+  .progress-card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; margin-bottom:22px;}
+
+  .status-strip{display:flex; align-items:center; gap:14px; padding:14px 18px; border-radius:12px; margin-bottom:18px; background:var(--success-soft); border:1px solid #BFE3D0;}
+  .status-strip.warn{background:var(--warn-soft); border-color:#F0D8AE;}
+  .status-strip.danger{background:var(--danger-soft); border-color:#F0B4B4;}
+  .status-strip .si{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; flex:none; background:var(--success); color:#fff;}
+  .status-strip.warn .si{background:var(--warn);}
+  .status-strip.danger .si{background:var(--danger);}
+  .status-strip strong{display:block; font-size:14px;}
+  .status-strip div.stext{font-size:12.5px; color:var(--muted); margin-top:2px;}
+
+  .process-track{width:100%;}
+  .process-step{display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; min-width:70px; cursor:pointer; position:relative;}
+  .process-step:not(:last-child)::after{content:''; position:absolute; top:15px; left:56%; width:100%; height:2px; background:var(--border); z-index:0;}
+  .process-step.done:not(:last-child)::after{background:var(--success);}
+  .process-dot{width:30px; height:30px; border-radius:50%; background:var(--bg); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:var(--muted); z-index:1; background:var(--surface);}
+  .process-step.done .process-dot{background:var(--success); border-color:var(--success); color:#fff;}
+  .process-step.current .process-dot{background:var(--navy); border-color:var(--navy); color:#fff;}
+  .process-step.attn .process-dot{background:var(--danger); border-color:var(--danger); color:#fff;}
+  .process-name{font-size:11px; color:var(--muted); text-align:center; line-height:1.3;}
+  .process-step.current .process-name{color:var(--navy); font-weight:700;}
+  .process-step.attn .process-name{color:var(--danger); font-weight:700;}
+
+  .work-item{display:flex; align-items:center; gap:12px; padding:11px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface);}
+  .work-item.attn{border-color:#F0B4B4; background:var(--danger-soft);}
+  .work-item .wi-dot{width:9px; height:9px; border-radius:50%; background:var(--warn); flex:none;}
+  .work-item.attn .wi-dot{background:var(--danger);}
+  .work-item .wi-text{flex:1; font-size:13px;}
+  .work-item .wi-text b{display:block; font-size:13.5px;}
+  .work-item .wi-text span{color:var(--muted); font-size:12px;}
+  .progress-head{display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:10px;}
+  .progress-bar{height:9px; background:var(--bg); border-radius:6px; overflow:hidden; display:flex;}
+  .progress-fill{background:linear-gradient(90deg,var(--teal),#0B7A76); height:100%;}
+  .progress-legend{display:flex; gap:18px; margin-top:10px; font-size:11.5px; color:var(--muted);}
+  .legend-dot{display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:5px;}
+
+  /* TABLE CARD */
+  .table-card{background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+  .table-tools{display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); flex-wrap:wrap;}
+  .chip{
+    font-size:12px; padding:6px 12px; border-radius:20px; border:1px solid var(--border);
+    background:var(--bg); color:var(--muted); cursor:pointer; font-weight:500;
+  }
+  .chip.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .table-tools .btn{margin-left:auto;}
+
+  .dot-chip{
+    font-size:12.5px; padding:7px 14px; border-radius:20px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); cursor:pointer; font-weight:600;
+  }
+  .dot-chip.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .wait-card{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:12px 16px; border:1px solid var(--border); border-radius:10px; cursor:pointer;
+    transition:.15s; background:var(--surface);
+  }
+  .wait-card:hover{border-color:var(--teal); background:var(--teal-soft);}
+  .wait-card .wc-left{display:flex; flex-direction:column; gap:2px;}
+  .wait-card .wc-name{font-weight:600; font-size:13.5px;}
+  .wait-card .wc-meta{font-size:11.5px; color:var(--muted);}
+  .wait-card .wc-amount{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:14px; color:var(--navy);}
+  .wait-card .wc-arrow{color:var(--teal); font-weight:700; font-size:16px;}
+  .wait-empty{color:var(--muted); font-size:13px; text-align:center; padding:16px;}
+
+  table{width:100%; border-collapse:collapse; font-size:12.8px;}
+  thead th{
+    text-align:left; padding:10px 14px; background:var(--bg); color:var(--muted);
+    font-weight:600; font-size:11.3px; text-transform:uppercase; letter-spacing:.3px;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  tbody td{padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  tbody tr:hover{background:#FAFBFD;}
+  tbody tr.new-row{background:var(--teal-soft);}
+  .num{text-align:right;}
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px;
+    font-size:11px; font-weight:600;
+  }
+  .badge-ok{background:var(--success-soft); color:var(--success);}
+  .badge-warn{background:var(--warn-soft); color:var(--warn);}
+  .badge-danger{background:var(--danger-soft); color:var(--danger);}
+  .badge-neutral{background:#EEF1F5; color:var(--navy);}
+  .row-actions{display:flex; gap:6px;}
+  .icon-btn{
+    width:28px; height:28px; border-radius:6px; border:1px solid var(--border); background:var(--surface);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted);
+  }
+  .icon-btn:hover{background:var(--bg); color:var(--navy);}
+  .icon-btn.print:hover{color:var(--teal); border-color:var(--teal);}
+  .icon-btn.disabled{opacity:.4; cursor:not-allowed;}
+  .icon-btn.unlock{color:var(--warn); border-color:var(--warn);}
+  .icon-btn.unlock:hover{background:var(--warn-soft);}
+  .lock-badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600;
+    color:#8A5A00; background:#FFF1D6; border-radius:6px; padding:2px 7px; margin-top:4px;
+  }
+  .role-switch{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted);}
+  .role-switch label{cursor:pointer; user-select:none;}
+  .switch{
+    position:relative; width:38px; height:20px; background:var(--border); border-radius:20px; cursor:pointer; transition:.2s;
+  }
+  .switch.on{background:var(--navy);}
+  .switch::after{
+    content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; background:#fff; border-radius:50%; transition:.2s;
+  }
+  .switch.on::after{left:20px;}
+
+  .quota-box{
+    background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:6px;
+  }
+  .quota-row{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px; color:var(--text);}
+  .quota-row:last-of-type{margin-bottom:8px;}
+  .quota-msg{font-size:12px; font-weight:600; padding:8px 10px; border-radius:8px; display:none;}
+  .quota-msg.ok{display:block; background:var(--success-soft); color:var(--success);}
+  .quota-msg.warn{display:block; background:var(--danger-soft); color:var(--danger);}
+  #saveBtn.blocked{background:#B8C0CC; cursor:not-allowed;}
+  #saveBtn.blocked:hover{background:#B8C0CC;}
+
+  .quota-summary{display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .quota-card{
+    flex:1; min-width:220px; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px;
+  }
+  .quota-card.danger{border-color:#F0B4B4; background:var(--danger-soft);}
+  .quota-card .qc-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .quota-card .qc-dot{font-size:12px; font-weight:700; color:var(--navy);}
+  .quota-card .qc-bar{height:7px; background:var(--bg); border-radius:5px; overflow:hidden; margin-bottom:8px;}
+  .quota-card .qc-fill{height:100%; background:var(--teal);}
+  .quota-card.danger .qc-fill{background:var(--danger);}
+  .quota-card .qc-nums{display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted);}
+  .quota-card .qc-nums b{color:var(--text); font-family:'IBM Plex Mono',monospace;}
+
+  .name-cell{font-weight:600; color:var(--text);}
+  .name-cell .id{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); font-weight:500; display:block;}
+
+  .table-foot{display:flex; justify-content:space-between; align-items:center; padding:12px 18px; font-size:12px; color:var(--muted);}
+
+  /* MODAL */
+  .overlay{position:fixed; inset:0; background:rgba(8,29,58,.45); display:none; align-items:center; justify-content:center; z-index:50;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff; width:480px; max-width:92vw; max-height:88vh; overflow-y:auto; border-radius:14px; padding:24px 26px; box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .modal h3{font-size:16px; margin-bottom:4px;}
+  .modal p.hint{font-size:12px; color:var(--muted); margin-bottom:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; font-weight:600; color:var(--text); margin-bottom:6px;}
+  .field input, .field select{
+    width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13px;
+    font-family:'Inter'; outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--teal);}
+  .readonly-field{background:var(--bg); color:var(--navy); font-weight:700; cursor:not-allowed;}
+  .field-row{display:flex; gap:12px;}
+  .field-row .field{flex:1;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:20px;}
+
+  .toast{
+    position:fixed; bottom:24px; right:24px; background:var(--navy-deep); color:#fff; padding:12px 18px;
+    border-radius:10px; font-size:13px; display:flex; align-items:center; gap:8px; box-shadow:0 10px 30px rgba(0,0,0,.25);
+    transform:translateY(20px); opacity:0; transition:.25s; z-index:60;
+  }
+  .toast.show{transform:translateY(0); opacity:1;}
+
+  .note-banner{
+    background:var(--teal-soft); border:1px solid #BEE7E4; color:#075652; border-radius:10px;
+    padding:10px 14px; font-size:12px; margin-bottom:18px; display:flex; gap:8px; align-items:flex-start;
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand-logo"><img src="data:image/png;base64,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" alt="BIDV" style="width:100%; max-width:180px; display:block; margin:0 auto;"></div>
+  <div class="brand-branch">Tràng Tiền &middot; Hà Nội</div>
+  <div class="brand-slogan">BIDV đồng hành cùng Ban QLDA phường Tương Mai trong công tác giải phóng mặt bằng</div>
+  <div class="today-badge">📅 Ngày làm việc hệ thống<br><input type="date" id="todayInput" onchange="changeWorkingDate(this.value)" style="margin-top:4px; width:100%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:6px; padding:5px 7px; font-family:'IBM Plex Mono',monospace; font-size:12.5px;"><small>Đổi để nhập lại dữ liệu dự án cũ</small></div>
+  <nav id="nav">
+    <div class="navitem active" data-page="tongquan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Tổng quan</div>
+    <div class="navitem" data-page="hodan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg>Danh mục hộ dân</div>
+    <div class="navitem" data-page="rutda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Rút tiền từ DA</div>
+    <div class="navitem" data-page="chitra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 12l5-5M3 12l5 5"/></svg>Chi trả hộ dân</div>
+    <div class="navitem" data-page="rutnop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Rút / Nộp Ngân hàng</div>
+    <div class="navitem" data-page="kehoach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v4M16 3v4M3 9h18"/><rect x="3" y="5" width="18" height="16" rx="2"/></svg>Kế hoạch chi trả</div>
+    <div class="navitem" data-page="baocao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M12 19V4M20 19v-7"/></svg>Báo cáo đối soát</div>
+    <div class="navitem" data-page="caughinh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Cấu hình</div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="branch-info">
+      <b>BIDV Tràng Tiền - Hà Nội</b>
+      Số 41 Hai Bà Trưng, Phường Cửa Nam, Tp Hà Nội<br>
+      &#9742; 024 7300 1999
+    </div>
+    <div class="sync-line"><span class="dot"></span>Đã đồng bộ Google Sheet<br>Cập nhật lúc 10:41, 12/07/2026</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="searchBox" placeholder="Tìm theo tên hộ, mã hộ, số QĐ...">
+    </div>
+    <div class="topbar-right">
+      <div class="role-switch">
+        <span id="roleLabel">Cán bộ nhập liệu</span>
+        <div class="switch" id="roleSwitch" onclick="toggleRole()"></div>
+      </div>
+      <div class="sync-ok"><span class="dot"></span>Đồng bộ realtime</div>
+      <div style="display:flex; align-items:center; gap:9px;">
+        <div class="avatar">VA</div>
+        <div style="line-height:1.25;">
+          <div style="font-size:12.5px; font-weight:700; color:var(--text);">Nguyễn Việt Anh</div>
+          <div style="font-size:11px; color:var(--muted);">Khối Phát triển Ngân hàng số</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- TỔNG QUAN -->
+    <div class="page" id="page-tongquan">
+      <div class="page-title">
+        <div><h1>Tổng quan hôm nay</h1><p id="tqSubtitle">Theo ngày làm việc hệ thống</p></div>
+        <button class="btn btn-ghost" onclick="refreshAllData()">↻ Làm mới</button>
+      </div>
+
+      <div id="tqStatusStrip" class="status-strip"></div>
+
+      <div class="table-card" style="margin-bottom:16px; padding:16px 18px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:12px;">Quy trình chi trả (8 bước)</div>
+        <div id="processTrack" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;"></div>
+      </div>
+
+      <div class="kpi-row" id="tqStatCards"></div>
+
+      <div class="table-card">
+        <div class="table-tools"><b style="font-size:13px;">Việc cần xử lý</b><span class="badge badge-warn" id="tqWorkCount" style="margin-left:8px;">0 việc</span></div>
+        <div id="tqWorkList" style="padding:6px 18px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </div>
+
+    <!-- HỘ DÂN -->
+    <div class="page" id="page-hodan" style="display:none">
+      <div class="page-title">
+        <div><h1>Danh mục hộ dân & quyết định</h1><p id="hodanSubtitle">15 hộ · Đợt 1-3</p></div>
+        <button class="btn btn-teal" onclick="openModal()">+ Thêm hộ mới</button>
+      </div>
+
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools" style="flex-wrap:wrap;">
+          <b style="font-size:13px; margin-right:6px;">Quản lý đợt:</b>
+          <span id="dotStatusLine" style="font-size:12.5px; color:var(--muted);"></span>
+          <button class="btn btn-ghost" style="margin-left:auto;" onclick="taoDotMoi()">🆕 Tạo đợt mới</button>
+          <button class="btn btn-primary" id="btnKhoaDot" onclick="khoaDotHienTai()">🔒 Khóa đợt đang mở</button>
+        </div>
+        <div style="padding:10px 18px; font-size:12px; color:var(--muted);">💡 Chỉ được tạo đợt mới khi KHÔNG CÒN đợt nào đang mở. Sau khi nhập xong toàn bộ hộ trong đợt, bấm "Khóa đợt" để chốt danh sách trước khi sang bước Rút tiền từ DA.</div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-tools" style="gap:10px;">
+          <b style="font-size:13px;">Lọc theo đợt:</b>
+          <select id="hodanDotSelect" onchange="onHodanDotSelectChange()" style="padding:7px 10px; border-radius:8px; border:1px solid var(--border); font-size:13px; min-width:240px; font-family:'Inter';"></select>
+        </div>
+        <table id="hodanTable">
+          <thead><tr>
+            <th>Hộ dân</th><th>Số QĐ</th><th>Ngày QĐ</th><th>Ngày Rút DA</th><th>Ngày chi trả</th>
+            <th class="num">Tổng QĐ</th><th class="num">Thực nhận</th><th class="num">Lãi</th><th class="num">Đã chi</th><th>Trạng thái</th>
+          </tr></thead>
+          <tbody id="hodanBody"></tbody>
+        </table>
+        <div class="table-foot" id="hodanFoot"></div>
+      </div>
+    </div>
+
+    <!-- RUT TIEN TU DA -->
+    <div class="page" id="page-rutda" style="display:none">
+      <div class="page-title">
+        <div><h1>Rút tiền từ Dự án (DA) về Ngân hàng</h1><p>Chọn đợt còn hộ chưa có Ngày Rút DA → tích hộ → tạo lệnh rút (link sang Rút/Nộp NH)</p></div>
+      </div>
+
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools" style="flex-wrap:wrap;">
+          <b style="font-size:13px; margin-right:4px;">Chọn đợt còn rút được tiền từ DA:</b>
+          <div id="rutdaDotChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+        </div>
+        <div id="rutdaBankLine" style="padding:10px 18px 0; font-size:12.5px; color:var(--muted);"></div>
+        <div style="padding:10px 18px 0;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" id="rutdaSelectAll" onchange="toggleSelectAllRutDA(this.checked)"> Tích chọn tất cả hộ chưa có Ngày Rút DA trong đợt này
+          </label>
+        </div>
+        <div id="rutdaCheckList" style="padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+        <div style="padding:0 18px 18px; display:flex; justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="taoLenhRutDA()">💸 Rút tiền cho <span id="rutdaSelectedCount">0</span> hộ đã chọn — Tổng <span id="rutdaSelectedTotal" class="mono">0 đ</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHI TRA -->
+    <div class="page" id="page-chitra" style="display:none">
+      <div class="page-title">
+        <div><h1>Chi trả tiền cho hộ dân</h1><p>Chỉ hiện hộ có "Ngày thực hiện" TRÙNG đúng ngày dự kiến đã khai báo trong Kế hoạch chi trả, VÀ ngân hàng đã rút tiền mặt về đúng ngày đó</p></div>
+        <button class="btn btn-ghost" onclick="openPayModal()">+ Ghi nhận chi trả thủ công</button>
+      </div>
+
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools" style="flex-wrap:wrap;">
+          <div class="field" style="margin:0;"><label style="font-size:11.5px;">Ngày thực hiện <span style="color:var(--muted); font-weight:400;">(= ngày hiệu lực, khớp ngày đã khai báo ở Kế hoạch)</span></label><input id="chitra_ngay_thuchien" type="date" style="padding:7px 9px;" onchange="onExecDateChange()"></div>
+          <b style="font-size:13px; margin:0 4px 0 14px;">Lọc theo ngân hàng:</b>
+          <div id="readyBankChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+          <button class="btn btn-primary" id="btnChiHangLoat" style="margin-left:auto;" onclick="chiTraHangLoat()">✅ Chi trả các hộ đã chọn (<span id="readyCount">0</span>)</button>
+        </div>
+        <div id="overdueBanner"></div>
+        <div style="padding:10px 18px 0; display:flex; align-items:center; gap:8px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" id="readySelectAll" onchange="toggleSelectAllReady(this.checked)"> Chọn tất cả trong danh sách đang lọc
+          </label>
+        </div>
+        <div id="readyList" style="padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-tools">
+          <b style="font-size:13px;">Lịch sử đã chi trả</b>
+          <button class="btn btn-ghost" style="margin-left:auto; padding:6px 12px; font-size:12px;" onclick="toggleSortHistory()">
+            Sắp xếp: <span id="sortLabel">Mới nhất trước</span> ⇅
+          </button>
+        </div>
+        <table>
+          <thead><tr><th>Hộ dân</th><th>Ngày Rút DA<br><span style="font-weight:400; text-transform:none;">(căn cứ tính lãi)</span></th><th>Ngày chi trả</th><th class="num">Số ngày chậm</th><th class="num">Thực nhận</th><th class="num">Lãi</th><th class="num">Tổng chi</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+          <tbody id="chitraBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RUT NOP -->
+    <div class="page" id="page-rutnop" style="display:none">
+      <div class="page-title">
+        <div><h1>Rút / Nộp tiền Ngân hàng</h1><p>DA → TK ngân hàng → Rút tiền mặt (ngày+NH) → Chi trả → Nộp lại cuối ngày</p></div>
+        <button class="btn btn-teal" onclick="openTxnModal()">+ Giao dịch mới</button>
+      </div>
+
+      <div class="kpi-row" style="margin-bottom:10px;">
+        <div class="kpi" id="kpiQuyMat" style="--accent:#F2A93D"></div>
+        <div class="kpi" id="kpiQuaHan" style="--accent:#C23B3B"></div>
+      </div>
+      <div class="kpi-row" id="kpiBanks" style="margin-bottom:14px;"></div>
+
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Ngày</th><th>Loại giao dịch</th><th>Mã NH</th><th class="num">Số tiền</th><th>Người thực hiện</th><th>Ghi chú</th><th>Đối soát cuối ngày</th></tr></thead>
+          <tbody id="rutnopBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- KE HOACH T+1 -->
+    <div class="page" id="page-kehoach" style="display:none">
+      <div class="page-title">
+        <div><h1>Lập kế hoạch chi trả</h1><p>Chọn ngân hàng → tích chọn hộ → tạo lệnh rút → hộ tự động sang menu Chi trả</p></div>
+      </div>
+
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools" style="flex-wrap:wrap; gap:14px;">
+          <div class="field" style="margin:0;"><label style="font-size:11.5px;">Dự kiến ngày chi trả <span style="color:var(--muted); font-weight:400;">(≥ hôm nay)</span></label><input id="plan_ngay_top" type="date" style="padding:7px 9px;"></div>
+          <div class="field" style="margin:0;"><label style="font-size:11.5px;">Rút tiền từ ngân hàng nào?</label><select id="plan_nh_top" onchange="renderPlanChecklist()" style="padding:7px 9px;"></select></div>
+          <button class="btn btn-teal" style="margin-left:auto;" onclick="addSelectedToPlan()">+ Thêm hộ đã tích vào kế hoạch (<span id="checkedCount">0</span>)</button>
+        </div>
+        <div style="padding:6px 18px 0; font-size:12px; color:var(--muted);">Danh sách bên dưới tự lọc theo ngân hàng đã chọn ở trên (vì mỗi đợt đã được rút DA về đúng 1 ngân hàng từ trước). Tích chọn các hộ dự kiến ra nhận tiền — hệ thống sẽ gán tất cả vào NGÂN HÀNG và NGÀY đã chọn ở trên.</div>
+        <div style="padding:10px 18px 0;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" id="planSelectAll" onchange="toggleSelectAllPlan(this.checked)"> Tích chọn tất cả trong danh sách đang lọc
+          </label>
+        </div>
+        <div id="planCheckList" style="padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools" style="flex-wrap:wrap;">
+          <b style="font-size:13px; margin-right:4px;">Danh sách hộ đã đưa vào kế hoạch — lọc theo ngân hàng:</b>
+          <div id="planViewChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+          <button class="btn btn-ghost" style="margin-left:auto; color:var(--danger); border-color:#F0B4B4;" onclick="huyTatCaKeHoach()">🗑 Hủy tất cả</button>
+        </div>
+        <table>
+          <thead><tr><th>Ngày dự kiến (T)</th><th>Hộ dân</th><th class="num">Số tiền còn phải chi</th><th>Ngân hàng phụ trách</th><th>Ghi chú</th><th></th></tr></thead>
+          <tbody id="planBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-card">
+        <div class="table-tools"><b style="font-size:13px;">Tổng hợp số tiền cần rút, theo từng ngân hàng — bấm để tạo lệnh rút</b></div>
+        <table>
+          <thead><tr><th>Ngày dự kiến</th><th>Ngân hàng</th><th class="num">Số hộ</th><th class="num">Tổng cần rút (đ)</th><th>Trạng thái</th><th></th></tr></thead>
+          <tbody id="planSummaryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BAO CAO -->
+    <div class="page" id="page-baocao" style="display:none">
+      <div class="page-title"><div><h1>Báo cáo đối soát</h1><p>Tự động cập nhật theo dữ liệu các trang</p></div></div>
+      <div class="kpi-row">
+        <div class="kpi" style="--accent:#F2A93D"><div class="kpi-label">Số dư sổ BQL (TK BIDV)</div><div class="kpi-val mono" style="font-size:16px">36.996.771.070 đ</div></div>
+        <div class="kpi" style="--accent:#00695C"><div class="kpi-label">Số dư sổ phụ BIDV</div><div class="kpi-val mono" style="font-size:16px">36.996.771.070 đ</div></div>
+        <div class="kpi" style="--accent:#1B8A5A"><div class="kpi-label">Chênh lệch</div><div class="kpi-val mono" style="font-size:16px; color:var(--success)">0 đ ✓ Khớp</div></div>
+        <div class="kpi" style="--accent:#C97A26"><div class="kpi-label">Hộ còn nợ nộp thêm</div><div class="kpi-val">0 hộ</div></div>
+      </div>
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools"><b style="font-size:13px;">Tổng hợp theo đợt</b></div>
+        <table>
+          <thead><tr><th>Đợt</th><th class="num">Số hộ</th><th class="num">Tổng QĐ</th><th class="num">Dân nhận</th><th class="num">Đã chi</th><th class="num">% hoàn thành</th></tr></thead>
+          <tbody>
+            <tr><td>Đợt 1</td><td class="num mono">6</td><td class="num mono">19.488.000 đ</td><td class="num mono">15.138.000 đ</td><td class="num mono">12.963.000 đ</td><td class="num mono">85,6%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-card">
+        <div class="table-tools"><b style="font-size:13px;">Chốt lãi TK BIDV</b></div>
+        <table>
+          <thead><tr><th>Tháng</th><th class="num">Số dư bình quân</th><th class="num">Lãi suất KKH</th><th class="num">Lãi dự kiến</th><th class="num">Lãi thực tế (BIDV)</th><th class="num">Chênh lệch</th><th>Trạng thái</th></tr></thead>
+          <tbody>
+            <tr><td>02/2026</td><td class="num mono">37.000.000.000 đ</td><td class="num mono">0,10%</td><td class="num mono">37.000.000 đ</td><td class="num mono">—</td><td class="num mono">—</td><td><span class="badge badge-warn">Chưa chốt</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CAU HINH -->
+    <div class="page" id="page-caughinh" style="display:none">
+      <div class="page-title"><div><h1>Cấu hình hệ thống</h1><p>Toàn bộ tham số dùng chung — sửa 1 nơi, áp dụng toàn bộ ứng dụng</p></div></div>
+
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-tools"><b style="font-size:13px;">Thông tin chung & tham số tính toán</b></div>
+        <div style="padding:16px 18px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="field" style="margin:0;"><label>Tên dự án</label><input id="cf_tenDuAn"></div>
+          <div class="field" style="margin:0;"><label>Ban QLDA phụ trách</label><input id="cf_phuong"></div>
+          <div class="field" style="margin:0;"><label>Lãi suất trả chậm cho dân (%/năm)</label><input id="cf_laiSuatTraDan" type="number" step="0.01" class="mono"></div>
+          <div class="field" style="margin:0;"><label>Số ngày quy đổi 1 năm</label><input id="cf_soNgayNam" type="number" class="mono"></div>
+        </div>
+        <div style="padding:0 18px 16px; display:flex; justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="saveConfigGeneral()">💾 Lưu tham số chung</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-tools">
+          <b style="font-size:13px;">Danh mục ngân hàng phối hợp</b>
+          <button class="btn btn-teal" style="margin-left:auto;" onclick="addBank()">+ Thêm ngân hàng mới</button>
+        </div>
+        <table>
+          <thead><tr><th>Mã NH</th><th>Tên ngân hàng</th><th>Số tài khoản BQL</th><th>Chi nhánh</th><th class="num">Lãi suất KKH (%/năm)</th><th>Người liên hệ</th><th>Ghi chú</th><th></th></tr></thead>
+          <tbody id="bankConfigBody"></tbody>
+        </table>
+        <div style="padding:10px 18px; font-size:12px; color:var(--muted);">💡 Sửa trực tiếp trong ô rồi bấm ra ngoài để lưu tự động. Số dư/lãi suất mỗi ngân hàng sẽ áp dụng ngay ở các tab Rút/Nộp, Kế hoạch, Chi trả và Báo cáo.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL THEM HO -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Thêm hộ dân mới</h3>
+    <p class="hint">Mã hộ sẽ tự sinh. Số QĐ tự gợi ý theo giá trị lớn nhất hiện có.</p>
+    <div class="quota-box" id="dotOpenBox" style="margin-bottom:14px;">
+      <div id="dotOpenMsg" class="quota-msg"></div>
+    </div>
+    <div class="field"><label>Họ và tên hộ</label><input id="f_name" placeholder="VD: Hộ gia đình ông (bà) Nguyễn Văn A"></div>
+    <div class="field-row">
+      <div class="field"><label>Số QĐ</label><input id="f_qd" value="133" class="mono"></div>
+      <div class="field"><label>Ngày Quyết định</label><input id="f_ngayqd" type="date"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Đợt (tự động, theo đợt đang mở)</label><input id="f_dot" class="mono readonly-field" readonly></div>
+      <div class="field"><label>Tiền TĐC (đ)</label><input id="f_tdc" placeholder="0" class="mono"></div>
+    </div>
+    <div class="field"><label>Tổng số tiền QĐ (đ)</label><input id="f_tong" placeholder="0" class="mono"></div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">📍 Thông tin đất đai (phục vụ xuất biên bản)</div>
+    <div class="field"><label>Địa chỉ thu hồi đất</label><input id="f_diachi" placeholder="VD: Số 12 đường Lĩnh Nam, phường Tương Mai, Hà Nội"></div>
+    <div class="field-row">
+      <div class="field"><label>Diện tích đang sử dụng (m2)</label><input id="f_dtsd" class="mono" placeholder="0"></div>
+      <div class="field"><label>Diện tích bàn giao (m2)</label><input id="f_dtbg" class="mono" placeholder="0"></div>
+      <div class="field"><label>Diện tích bị thu hồi (m2)</label><input id="f_dtth" class="mono" placeholder="0"></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">🪪 Nhân thân đại diện hộ (để ký biên bản)</div>
+    <div class="field-row">
+      <div class="field"><label>Họ tên người 1</label><input id="f_hoten1" placeholder="Người đại diện chính"></div>
+      <div class="field"><label>Số CCCD</label><input id="f_cccd1" class="mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày cấp</label><input id="f_ngaycap1" type="date"></div>
+      <div class="field"><label>Nơi cấp</label><input id="f_noicap1" placeholder="Cục CS QLHC về TTXH"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Họ tên người 2 (đồng sở hữu, nếu có)</label><input id="f_hoten2"></div>
+      <div class="field"><label>Số CCCD</label><input id="f_cccd2" class="mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày cấp</label><input id="f_ngaycap2" type="date"></div>
+      <div class="field"><label>Nơi cấp</label><input id="f_noicap2"></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">✍️ Ủy quyền (nếu có người khác ký thay)</div>
+    <div class="field"><label>Có ủy quyền?</label>
+      <select id="f_uyquyen">
+        <option value="Không">Không</option>
+        <option value="Có">Có</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Họ tên người được ủy quyền</label><input id="f_hotenuq"></div>
+      <div class="field"><label>Số CCCD</label><input id="f_cccduq" class="mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày cấp</label><input id="f_ngaycapuq" type="date"></div>
+      <div class="field"><label>Nơi cấp</label><input id="f_noicapuq"></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">📅 Bàn giao mặt bằng (nếu khác ngày nhận tiền)</div>
+    <div class="field-row">
+      <div class="field"><label>Ngày bàn giao thực tế</label><input id="f_ngaybg" type="date"></div>
+      <div class="field"><label>Giờ bàn giao</label><input id="f_giobg" placeholder="VD: 15:30"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="addRow()">Lưu hộ dân</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL GIAO DICH NGAN HANG -->
+<div class="overlay" id="overlayTxn">
+  <div class="modal">
+    <h3>Giao dịch ngân hàng mới</h3>
+    <p class="hint">Chọn đúng loại giao dịch và đúng ngân hàng — hệ thống tự cập nhật quỹ tiền mặt / TK từng NH.</p>
+    <div class="field"><label>Loại giao dịch</label>
+      <select id="tx_loai" onchange="onTxnTypeChange()">
+        <option>Rút tiền mặt từ NH</option>
+        <option>Nộp tiền mặt vào NH</option>
+        <option>Nộp NSNN thay dân</option>
+        <option>Nhận lãi ngân hàng</option>
+      </select>
+      <p class="hint" style="margin-top:6px; margin-bottom:0;">💡 Để rút tiền từ Dự án (DA) cho 1 đợt, dùng menu riêng <b>"Rút tiền từ DA"</b> — chọn đợt, tích hộ, sẽ tự động link sang đây.</p>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày</label><input id="tx_ngay" type="date" value="2026-07-12" onchange="onTxnTypeChange()"></div>
+      <div class="field"><label>Ngân hàng (bắt buộc)</label><select id="tx_nh" onchange="onTxnTypeChange()"></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field" id="tx_dot_field"><label id="tx_dot_label">Đợt</label><select id="tx_dot" class="mono"></select></div>
+      <div class="field"><label>Số tiền (đ)</label><input id="tx_sotien" placeholder="0" class="mono"></div>
+    </div>
+    <div class="field"><label>Ghi chú</label><input id="tx_ghichu" placeholder="VD: Rút tiền mặt chi trả đợt 1"></div>
+    <div class="quota-box" id="txMsgBox" style="display:none;">
+      <div id="txMsg" class="quota-msg"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeTxnModal()">Hủy</button>
+      <button class="btn btn-primary" id="txSaveBtn" onclick="saveTxn()">Lưu giao dịch</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GHI NHAN CHI TRA -->
+<div class="overlay" id="overlayPay">
+  <div class="modal">
+    <h3>Ghi nhận chi trả cho hộ dân</h3>
+    <p class="hint">Chỉ được chi trả vào đúng ngày + đúng ngân hàng đã có lệnh "Rút tiền mặt từ NH".</p>
+    <div class="field"><label>Chọn hộ (chưa nhận đủ)</label>
+      <select id="pay_ho"></select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày chi trả thực tế</label><input id="pay_ngay" type="date" value="2026-07-12" oninput="updatePayCheck()"></div>
+      <div class="field"><label>Ngân hàng chi trả</label><select id="pay_nh" onchange="updatePayCheck()"></select></div>
+    </div>
+    <div class="quota-box" id="payMsgBox">
+      <div class="quota-row"><span>Lệnh rút tiền mặt ngày này, NH này:</span><b id="payRutLine" class="mono">—</b></div>
+      <div id="payMsg" class="quota-msg"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closePayModal()">Hủy</button>
+      <button class="btn btn-primary" id="paySaveBtn" onclick="savePay()">Ghi nhận chi trả</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// KET NOI BACKEND: dan URL Web App cua Apps Script (Code.gs) vao day sau khi Deploy
+// =========================================================
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+async function apiGet(action, params){
+  const qs = new URLSearchParams({ action, ...(params||{}) });
+  const res = await fetch(`${API_URL}?${qs.toString()}`);
+  if(!res.ok) throw new Error('Lỗi mạng: ' + res.status);
+  return res.json();
+}
+function newRequestId(){
+  return 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2,10);
+}
+async function apiPost(action, payload){
+  const res = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action, requestId: newRequestId(), ...(payload||{}) }),
+  });
+  if(!res.ok) throw new Error('Lỗi mạng: ' + res.status);
+  return res.json();
+}
+
+// Chan bam trung/bam lien tuc trong luc dang cho server xu ly 1 thao tac quan trong
+// (rut DA, chi tra, tao giao dich...) - ket hop voi requestId phia server de chong trung lap kep.
+let busyAction = false;
+async function withBusyGuard(fn){
+  if(busyAction){ toast('⏳ Đang xử lý yêu cầu trước đó, vui lòng đợi...'); return; }
+  busyAction = true;
+  try{ await fn(); }
+  finally{ busyAction = false; }
+}
+
+// Du lieu noi bo (duoc NAP LAI moi khi refreshAllData() chay) - giu nguyen ten bien/truong
+// nhu ban demo de toan bo logic render/tinh toan phia duoi KHONG can sua.
+let TODAY_ISO = "2026-07-12"; // Ngay lam viec cua he thong - CO THE THAY DOI de nhap lai du lieu du an cu (backfill), duoc dong bo tu server o refreshAllData()
+
+let data = [];
+let txns = [];
+let plan = [];
+let payments = [];
+let banks = [];
+let config = { tenDuAn:"", phuong:"", laiSuatTraDan:0.002, soNgayNam:365 };
+let dotLockStatus = {};
+let currentOpenDot = null;
+let bankSeq = 0;
+let currentRole = "canbo"; // "canbo" | "truongnhom"
+
+function isValidDateStr(s){ return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+
+/** Nap toan bo du lieu tu Google Sheet (qua Apps Script) va ve lai TOAN BO giao dien */
+async function refreshAllData(){
+  let res;
+  try{
+    res = await apiGet("getAll");
+  } catch(err){
+    toast("❌ Không kết nối được máy chủ: " + err.message);
+    return;
+  }
+  if(res.error){ toast("❌ " + res.error); return; }
+
+  // --- Chuan hoa HO DAN ve dung cau truc webapp dang dung ---
+  data.length = 0;
+  res.households.forEach(h=>{
+    data.push({
+      id: h.id, name: h.name, qd: String(h.soQD||""),
+      ngay: dmy(h.ngayQD), ngayISO: h.ngayQD,
+      ngayRutDA: isValidDateStr(h.ngayRutDA) ? h.ngayRutDA : null,
+      tong: Number(h.tong)||0, nhan: Number(h.nhan)||0, chi: Number(h.daChi)||0,
+      dot: Number(h.dot), isNew:false,
+      status: h.status, statusLabel: h.statusLabel,
+      diaChiThuHoi: h.diaChiThuHoi||"", dienTichDangSuDung: h.dienTichDangSuDung||"", dienTichBanGiao: h.dienTichBanGiao||"", dienTichThuHoi: h.dienTichThuHoi||"",
+      hoTen1: h.hoTen1||"", cccd1: h.cccd1||"", ngayCap1: h.ngayCap1||"", noiCap1: h.noiCap1||"",
+      hoTen2: h.hoTen2||"", cccd2: h.cccd2||"", ngayCap2: h.ngayCap2||"", noiCap2: h.noiCap2||"",
+      coUyQuyen: h.coUyQuyen||"Không", hoTenUyQuyen: h.hoTenUyQuyen||"", cccdUyQuyen: h.cccdUyQuyen||"", ngayCapUyQuyen: h.ngayCapUyQuyen||"", noiCapUyQuyen: h.noiCapUyQuyen||"",
+      ngayBanGiao: h.ngayBanGiao||"", gioBanGiao: h.gioBanGiao||"",
+    });
+  });
+
+  // --- NGAN HANG ---
+  banks.length = 0;
+  res.banks.forEach(b=> banks.push({ id:b.id, name:b.name, stk:b.stk||"", branch:b.branch||"", kkh:Number(b.kkh)||0, lienHe:b.lienHe||"", ghichu:b.ghichu||"" }));
+  bankSeq = banks.length ? Math.max(...banks.map(b=>parseInt(String(b.id).replace('NH',''))||0)) : 0;
+
+  // --- GIAO DICH NGAN HANG ---
+  txns.length = 0;
+  res.txns.forEach(t=> txns.push({ ngay:t.ngay, loai:t.loai, sotien:Number(t.sotien)||0, nh:t.nh, dot:t.dot||undefined, ghichu:t.ghichu||"", nguoi:t.nguoi||"" }));
+
+  // --- KE HOACH ---
+  plan.length = 0;
+  res.plan.forEach(p=> plan.push({ ngay:p.ngay, hoId:p.hoId, nh:p.nh, ghichu:p.ghichu||"" }));
+
+  // --- LICH SU CHI TRA ---
+  payments.length = 0;
+  res.payments.forEach(p=> payments.push({
+    hoId:p.hoId, ngay:p.ngay, nh:p.nh, sotien:Number(p.sotien)||0, lai:Number(p.lai)||0,
+    tongchi:Number(p.tongChi)||0, locked: p.khoaDuLieu==="Đã khóa", printGiao:false, printNhan:false,
+  }));
+
+  // --- DOT REGISTRY ---
+  dotLockStatus = {};
+  currentOpenDot = null;
+  res.dots.forEach(d=>{
+    dotLockStatus[Number(d.soDot)] = (d.trangThai === "Đã khóa");
+    if(d.trangThai === "Đang mở") currentOpenDot = Number(d.soDot);
+  });
+
+  // --- CONFIG ---
+  config.tenDuAn = res.config.tenDuAn || "";
+  config.phuong = res.config.phuong || "";
+  config.laiSuatTraDan = Number(res.config.laiSuatTraDan) || 0.002;
+  config.soNgayNam = Number(res.config.soNgayNam) || 365;
+
+  if(res.today) TODAY_ISO = res.today;
+
+  // --- VE LAI TOAN BO GIAO DIEN ---
+  renderAllUI();
+}
+
+/** Goi lai toan bo ham render hien co (dinh nghia ben duoi file) sau khi du lieu thay doi */
+function renderAllUI(){
+  document.getElementById('todayInput').value = TODAY_ISO;
+  renderHodanChips();
+  renderTable(getHodanFiltered());
+  renderDotStatus();
+  renderRutNop();
+  renderQuotaSummary();
+  renderChiTra();
+  renderPlan();
+  renderPlanSummary();
+  renderPlanChecklist();
+  renderReadyBankChips();
+  renderReadyList();
+  renderRutDADotChips();
+  renderRutDAChecklist();
+  renderBankConfig();
+  loadConfigFormValues();
+  renderDashboard();
+}
+
+// =========================================================
+// DASHBOARD TONG QUAN: tien trinh 8 buoc + viec can xu ly
+// (gom du lieu tu cac trang khac, giup can bo biet ngay hom nay can lam gi)
+// =========================================================
+function goToPage(pageName){
+  const item = document.querySelector(`.navitem[data-page="${pageName}"]`);
+  if(item) item.click();
+}
+function renderDashboard(){
+  const stripEl = document.getElementById('tqStatusStrip');
+  const trackEl = document.getElementById('processTrack');
+  const statsEl = document.getElementById('tqStatCards');
+  const workEl = document.getElementById('tqWorkList');
+  const countEl = document.getElementById('tqWorkCount');
+  if(!stripEl) return;
+
+  document.getElementById('tqSubtitle').textContent = `Theo ngày làm việc hệ thống: ${dmy(TODAY_ISO)}`;
+
+  const banksQuaHan = banks.filter(b => bankOverdueDate(b.id));
+  const dotDangMo = currentOpenDot;
+  const dotsCanDaList = dotsCanDA();
+  const readyToday = readyQueue().filter(p => p.ngay === TODAY_ISO);
+  const chuaTaoLenhRut = plan.filter(p => !isFunded(p.ngay, p.nh));
+
+  // --- Thanh trang thai tong the ---
+  if(banksQuaHan.length>0){
+    stripEl.className = 'status-strip danger';
+    stripEl.innerHTML = `<div class="si">!</div><div><strong>${banksQuaHan.length} ngân hàng đang tồn quá hạn</strong><div class="stext">${banksQuaHan.map(b=>b.id+' từ '+dmy(bankOverdueDate(b.id))).join(', ')} — xử lý ngay ở tab Rút/Nộp hoặc Chi trả</div></div>`;
+  } else {
+    stripEl.className = 'status-strip';
+    stripEl.innerHTML = `<div class="si">✓</div><div><strong>Không có khoản quá hạn</strong><div class="stext">Các ngân hàng có thể tiếp tục giao dịch bình thường</div></div>`;
+  }
+
+  // --- Tien trinh 8 buoc: xac dinh buoc dang can lam ---
+  const steps = [
+    {name:'Đợt & hộ dân', page:'hodan', state: dotDangMo ? 'current' : 'done'},
+    {name:'Rút DA', page:'rutda', state: dotsCanDaList.length>0 ? (dotDangMo?'pending':'current') : 'done'},
+    {name:'Kế hoạch', page:'kehoach', state: 'done'},
+    {name:'Rút tiền mặt', page:'rutnop', state: chuaTaoLenhRut.length>0 ? 'current' : 'done'},
+    {name:'Chi trả', page:'chitra', state: readyToday.length>0 ? 'current' : 'done'},
+    {name:'Đối soát', page:'chitra', state: banksQuaHan.length>0 ? 'attn' : 'done'},
+    {name:'Nộp tồn quỹ', page:'rutnop', state: banksQuaHan.length>0 ? 'attn' : 'done'},
+    {name:'Chốt lãi', page:'baocao', state: 'done'},
+  ];
+  trackEl.innerHTML = steps.map((s,i)=>`
+    <div class="process-step ${s.state==='current'?'current':s.state==='attn'?'attn':s.state==='done'?'done':''}" onclick="goToPage('${s.page}')">
+      <div class="process-dot">${s.state==='done'?'✓':i+1}</div>
+      <div class="process-name">${s.name}</div>
+    </div>`).join('');
+
+  // --- The so lieu theo trang thai ho dan (dung status tuong minh tu backend) ---
+  const cnt = { DANG_NHAP:0, CHO_RUT_DA:0, DA_CO_TIEN_DA:0, DA_CHI_DU:0 };
+  data.forEach(h=>{ if(cnt[h.status]!==undefined) cnt[h.status]++; });
+  statsEl.innerHTML = `
+    <div class="kpi" style="--accent:#C97A26"><div class="kpi-label">Hộ đang nhập</div><div class="kpi-val">${cnt.DANG_NHAP}</div><div class="kpi-sub">Thuộc đợt đang mở</div></div>
+    <div class="kpi" style="--accent:#F2A93D"><div class="kpi-label">Chờ rút DA</div><div class="kpi-val">${cnt.CHO_RUT_DA}</div><div class="kpi-sub">Đợt đã khóa</div></div>
+    <div class="kpi" style="--accent:#00695C"><div class="kpi-label">Đã có tiền DA</div><div class="kpi-val">${cnt.DA_CO_TIEN_DA}</div><div class="kpi-sub">Có thể lập kế hoạch</div></div>
+    <div class="kpi" style="--accent:#1B8A5A"><div class="kpi-label">Đã chi trả đủ</div><div class="kpi-val">${cnt.DA_CHI_DU}</div><div class="kpi-sub">Hộ đã hoàn tất</div></div>`;
+
+  // --- Viec can xu ly ---
+  const work = [];
+  if(dotDangMo){
+    const soHo = data.filter(h=>h.dot===dotDangMo).length;
+    work.push({attn:false, page:'hodan', title:`Đợt ${dotDangMo} đang mở (${soHo} hộ)`, sub:'Nhớ bấm "Khóa đợt" sau khi nhập xong toàn bộ hộ dân'});
+  }
+  dotsCanDaList.forEach(d=>{
+    const soHo = data.filter(h=>h.dot===d && h.status==='CHO_RUT_DA').length;
+    work.push({attn:false, page:'rutda', title:`Đợt ${d} còn ${soHo} hộ chưa rút DA`, sub:'Vào "Rút tiền từ DA" để xử lý'});
+  });
+  banksQuaHan.forEach(b=>{
+    work.push({attn:true, page:'rutnop', title:`${b.id} - ${b.name} tồn quá hạn từ ${dmy(bankOverdueDate(b.id))}`, sub:'Bắt buộc xử lý (nộp lại hoặc chi trả bù) trước khi thao tác ngày mới'});
+  });
+  chuaTaoLenhRut.forEach(p=>{
+    const tong = plan.filter(x=>x.ngay===p.ngay && x.nh===p.nh).reduce((s,x)=>{ const h=data.find(y=>y.id===x.hoId); return s+(h?h.nhan-h.chi:0); },0);
+    work.push({attn:false, page:'kehoach', title:`Cần rút tiền mặt ${fmt(tong)} tại ${p.nh} cho ngày ${dmy(p.ngay)}`, sub:'Vào "Kế hoạch chi trả" bấm "Tạo lệnh rút →"'});
+  });
+  if(readyToday.length>0){
+    work.push({attn:false, page:'chitra', title:`${readyToday.length} hộ sẵn sàng chi trả hôm nay`, sub:'Vào "Chi trả hộ dân" để xử lý'});
+  }
+  // loai bo trung lap "chua tao lenh rut" theo tung cap ngay+nh (vi vong lap tren co the lap qua nhieu ho)
+  const seen = new Set();
+  const workDedup = work.filter(w=>{ const k=w.title; if(seen.has(k)) return false; seen.add(k); return true; });
+
+  countEl.textContent = workDedup.length + ' việc';
+  workEl.innerHTML = workDedup.length===0
+    ? '<div class="wait-empty">🎉 Không có việc gì cần xử lý gấp lúc này.</div>'
+    : workDedup.map(w=>`
+      <div class="work-item ${w.attn?'attn':''}" onclick="goToPage('${w.page}')" style="cursor:pointer;">
+        <div class="wi-dot"></div>
+        <div class="wi-text"><b>${w.title}</b><span>${w.sub}</span></div>
+      </div>`).join('');
+}
+
+
+function tinhDanNhan(tong, tdc){
+  if (isNaN(tong)) tong = 0;
+  if (isNaN(tdc)) tdc = 0;
+  return tdc <= tong ? tong - tdc : 0;
+}
+
+function tongDanNhanDaNhapTheoDot(dot){
+  return data.filter(h => Number(h.dot ?? 1) === dot).reduce((s,h)=> s + h.nhan, 0);
+}
+
+function fmt(n){ return n.toLocaleString('vi-VN') + ' đ'; }
+
+function findPayment(hoId){ return payments.find(p=>p.hoId===hoId); }
+
+function renderTable(rows){
+  const body = document.getElementById('hodanBody');
+  body.innerHTML = '';
+  const statusBadgeClass = {
+    KHONG_PHAI_NHAN: 'badge-ok', DA_CHI_DU: 'badge-ok',
+    DA_CO_TIEN_DA: 'badge-neutral', CHO_RUT_DA: 'badge-warn', DANG_NHAP: 'badge-warn',
+  };
+  rows.forEach(h=>{
+    const trangthai = `<span class="badge ${statusBadgeClass[h.status]||'badge-warn'}">${h.statusLabel||''}</span>`;
+    const p = findPayment(h.id);
+    const lockBadge = (p && p.locked) ? ` <span class="lock-badge" title="Đã khóa dữ liệu chi trả">🔒</span>` : '';
+    const ngayRutDACell = h.ngayRutDA ? dmy(h.ngayRutDA) : '<span style="color:var(--danger); font-weight:700;">⚠ Chưa rút DA</span>';
+    const ngayChiTraCell = p ? dmy(p.ngay) : '<span style="color:var(--muted);">—</span>';
+    const laiCell = p ? fmt(p.lai) : '<span style="color:var(--muted);">—</span>';
+    const tr = document.createElement('tr');
+    if(h.isNew) tr.className = 'new-row';
+    tr.innerHTML = `
+      <td class="name-cell">${h.name}<span class="id">${h.id}</span></td>
+      <td class="mono">${h.qd}</td>
+      <td>${h.ngay}<span style="color:var(--muted); font-size:11px; display:block;">Đợt ${h.dot}</span></td>
+      <td>${ngayRutDACell}</td>
+      <td>${ngayChiTraCell}</td>
+      <td class="num mono">${fmt(h.tong)}</td>
+      <td class="num mono">${fmt(h.nhan)}</td>
+      <td class="num mono">${laiCell}</td>
+      <td class="num mono">${fmt(h.chi)}</td>
+      <td>${trangthai}${lockBadge}</td>`;
+    body.appendChild(tr);
+  });
+  const foot = document.getElementById('hodanFoot');
+  if(foot){
+    const tongQD = rows.reduce((s,h)=>s+h.tong,0);
+    foot.innerHTML = `<span>Hiển thị ${rows.length} / ${data.length} hộ</span><span>Tổng QĐ: <b class="mono">${fmt(tongQD)}</b></span>`;
+  }
+}
+
+let hodanDotFilter = 'all';
+function getHodanFiltered(){
+  const q = (document.getElementById('searchBox').value || '').toLowerCase();
+  return data.filter(h=>{
+    const matchQ = !q || h.name.toLowerCase().includes(q) || h.id.toLowerCase().includes(q) || h.qd.includes(q);
+    const matchDot = hodanDotFilter==='all' || h.dot===hodanDotFilter;
+    return matchQ && matchDot;
+  });
+}
+function renderHodanChips(){
+  const sel = document.getElementById('hodanDotSelect');
+  if(!sel) return;
+  const dots = [...new Set(data.map(h=>h.dot))].sort((a,b)=>b-a); // moi nhat len dau, de tim nhanh khi co nhieu dot
+  const prevValue = sel.value || hodanDotFilter;
+  sel.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = 'all';
+  optAll.textContent = `Tất cả các đợt (${data.length} hộ)`;
+  sel.appendChild(optAll);
+  dots.forEach(dot=>{
+    const count = data.filter(h=>h.dot===dot).length;
+    const chuaRut = data.filter(h=>h.dot===dot && !h.ngayRutDA).length;
+    const opt = document.createElement('option');
+    opt.value = dot;
+    let label = `Đợt ${dot} — ${count} hộ`;
+    if(!dotLockStatus[dot]) label += '  🔓 đang mở';
+    else if(chuaRut>0) label += `  ⚠ ${chuaRut} hộ chưa rút DA`;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  hodanDotFilter = (prevValue==='all') ? 'all' : (dots.includes(Number(prevValue)) ? Number(prevValue) : 'all');
+  sel.value = hodanDotFilter;
+  const subtitle = document.getElementById('hodanSubtitle');
+  if(subtitle){
+    const minDot = Math.min(...dots), maxDot = Math.max(...dots);
+    subtitle.textContent = `${data.length} hộ · Đợt ${minDot===maxDot ? minDot : minDot+'-'+maxDot}`;
+  }
+}
+function onHodanDotSelectChange(){
+  const v = document.getElementById('hodanDotSelect').value;
+  hodanDotFilter = (v==='all') ? 'all' : Number(v);
+  renderTable(getHodanFiltered());
+}
+renderHodanChips();
+
+// =========================================================
+// QUAN LY DOT: tao dot moi / khoa dot (chi 1 dot duoc mo tai 1 thoi diem)
+// =========================================================
+function maxExistingDot(){
+  const dotsInData = data.length ? Math.max(...data.map(h=>h.dot)) : 0;
+  const dotsInRegistry = Object.keys(dotLockStatus).length ? Math.max(...Object.keys(dotLockStatus).map(Number)) : 0;
+  return Math.max(dotsInData, dotsInRegistry);
+}
+function renderDotStatus(){
+  const line = document.getElementById('dotStatusLine');
+  const btnKhoa = document.getElementById('btnKhoaDot');
+  if(!line) return;
+  if(currentOpenDot){
+    const soHo = data.filter(h=>h.dot===currentOpenDot).length;
+    line.innerHTML = `<span class="badge badge-warn">Đợt ${currentOpenDot} đang MỞ</span> — đã nhập ${soHo} hộ, chưa khóa`;
+    btnKhoa.disabled = false;
+    btnKhoa.classList.remove('blocked');
+  } else {
+    line.innerHTML = `<span class="badge badge-ok">Không có đợt nào đang mở</span> — bấm "Tạo đợt mới" để bắt đầu đợt ${maxExistingDot()+1}`;
+    btnKhoa.disabled = true;
+    btnKhoa.classList.add('blocked');
+  }
+}
+async function taoDotMoi(){
+  if(currentOpenDot){
+    toast(`❌ Đợt ${currentOpenDot} đang mở — phải khóa đợt này trước khi tạo đợt mới`);
+    return;
+  }
+  const res = await apiPost('taoDotMoi');
+  if(!res.success){ toast('❌ ' + res.error); return; }
+  toast(`Đã tạo Đợt ${res.soDot} — bắt đầu nhập hộ dân cho đợt này`);
+  await refreshAllData();
+}
+async function khoaDotHienTai(){
+  if(!currentOpenDot){ toast('❌ Không có đợt nào đang mở'); return; }
+  const soHo = data.filter(h=>h.dot===currentOpenDot).length;
+  if(soHo===0){ toast(`❌ Đợt ${currentOpenDot} chưa có hộ nào, không thể khóa`); return; }
+  if(!confirm(`Xác nhận KHÓA Đợt ${currentOpenDot} (${soHo} hộ)? Sau khi khóa sẽ KHÔNG thể thêm hộ mới vào đợt này nữa.`)) return;
+  const res = await apiPost('khoaDot', { soDot: currentOpenDot });
+  if(!res.success){ toast('❌ ' + res.error); return; }
+  toast(`Đã khóa Đợt ${res.soDot} (${res.soHo} hộ) — có thể sang bước Rút tiền từ DA`);
+  await refreshAllData();
+}
+renderDotStatus();
+
+function renderQuotaSummary(){ /* Da bo kiem soat quy luc nhap QD - thu tu nghiep vu moi: nhap ho dan TRUOC, rut DA SAU */ }
+renderQuotaSummary();
+
+function toggleRole(){
+  currentRole = currentRole === 'canbo' ? 'truongnhom' : 'canbo';
+  document.getElementById('roleLabel').textContent = currentRole === 'canbo' ? 'Cán bộ nhập liệu' : 'Trưởng nhóm';
+  document.getElementById('roleSwitch').classList.toggle('on', currentRole === 'truongnhom');
+  renderTable(data.filter(h=>{
+    const q = document.getElementById('searchBox').value.toLowerCase();
+    return !q || h.name.toLowerCase().includes(q) || h.id.toLowerCase().includes(q) || h.qd.includes(q);
+  }));
+  toast('Đã chuyển sang vai trò: ' + (currentRole==='canbo' ? 'Cán bộ nhập liệu' : 'Trưởng nhóm'));
+}
+
+document.getElementById('searchBox').addEventListener('input', ()=>{
+  renderTable(getHodanFiltered());
+});
+
+document.querySelectorAll('.navitem').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+    document.getElementById('page-'+item.dataset.page).style.display='block';
+    if(item.dataset.page==='kehoach'){
+      document.getElementById('plan_ngay_top').value = tomorrowISO();
+    }
+  });
+});
+
+function openModal(){
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('f_name').value = '';
+  document.getElementById('f_qd').value = String((data.length ? Math.max(...data.map(h=>parseInt(h.qd)||0)) : 100) + 1);
+  document.getElementById('f_ngayqd').value = TODAY_ISO;
+  document.getElementById('f_tong').value = '';
+  document.getElementById('f_tdc').value = '';
+  ['f_diachi','f_dtsd','f_dtbg','f_dtth','f_hoten1','f_cccd1','f_ngaycap1','f_noicap1',
+   'f_hoten2','f_cccd2','f_ngaycap2','f_noicap2','f_hotenuq','f_cccduq','f_ngaycapuq','f_noicapuq',
+   'f_ngaybg','f_giobg'].forEach(id=>{ document.getElementById(id).value = ''; });
+  document.getElementById('f_uyquyen').value = 'Không';
+  const dotBox = document.getElementById('dotOpenMsg');
+  const saveBtn = document.getElementById('saveBtn');
+  if(currentOpenDot){
+    document.getElementById('f_dot').value = currentOpenDot;
+    dotBox.className = 'quota-msg ok';
+    dotBox.textContent = `💡 Sẽ thêm vào Đợt ${currentOpenDot} (đang mở).`;
+    saveBtn.classList.remove('blocked');
+  } else {
+    document.getElementById('f_dot').value = '';
+    dotBox.className = 'quota-msg warn';
+    dotBox.textContent = `⚠ CHƯA CÓ ĐỢT NÀO ĐANG MỞ — vào trang Danh mục hộ dân, bấm "Tạo đợt mới" trước khi thêm hộ.`;
+    saveBtn.classList.add('blocked');
+  }
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+async function addRow(){
+  if(!currentOpenDot){
+    toast('❌ Chưa có đợt nào đang mở — bấm "Tạo đợt mới" trước');
+    return;
+  }
+  const tong = parseFloat(document.getElementById('f_tong').value) || 0;
+  const tdc = parseFloat(document.getElementById('f_tdc').value) || 0;
+  const name = document.getElementById('f_name').value || "Hộ gia đình (chưa đặt tên)";
+  const qd = document.getElementById('f_qd').value || "";
+  const ngayQD = document.getElementById('f_ngayqd').value || TODAY_ISO;
+  if(tong<=0){ toast('❌ Nhập Tổng số tiền QĐ hợp lệ'); return; }
+
+  const payload = {
+    name, soQD: qd, ngayQD, tong, tdc,
+    diaChiThuHoi: document.getElementById('f_diachi').value,
+    dienTichDangSuDung: parseFloat(document.getElementById('f_dtsd').value) || undefined,
+    dienTichBanGiao: parseFloat(document.getElementById('f_dtbg').value) || undefined,
+    dienTichThuHoi: parseFloat(document.getElementById('f_dtth').value) || undefined,
+    hoTen1: document.getElementById('f_hoten1').value,
+    cccd1: document.getElementById('f_cccd1').value,
+    ngayCap1: document.getElementById('f_ngaycap1').value,
+    noiCap1: document.getElementById('f_noicap1').value,
+    hoTen2: document.getElementById('f_hoten2').value,
+    cccd2: document.getElementById('f_cccd2').value,
+    ngayCap2: document.getElementById('f_ngaycap2').value,
+    noiCap2: document.getElementById('f_noicap2').value,
+    coUyQuyen: document.getElementById('f_uyquyen').value,
+    hoTenUyQuyen: document.getElementById('f_hotenuq').value,
+    cccdUyQuyen: document.getElementById('f_cccduq').value,
+    ngayCapUyQuyen: document.getElementById('f_ngaycapuq').value,
+    noiCapUyQuyen: document.getElementById('f_noicapuq').value,
+    ngayBanGiao: document.getElementById('f_ngaybg').value,
+    gioBanGiao: document.getElementById('f_giobg').value,
+  };
+  const res = await apiPost('themHoDan', payload);
+  if(!res.success){ toast('❌ ' + res.error); return; }
+  closeModal();
+  toast(`Đã thêm hộ ${res.id} vào Đợt ${res.dot} — CHƯA có Ngày Rút DA, cần xử lý ở menu "Rút tiền từ DA"`);
+  await refreshAllData();
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+  document.querySelector('[data-page="hodan"]').classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+  document.getElementById('page-hodan').style.display='block';
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// =========================================================
+// LUONG NGAN HANG (DA NGAN HANG): Rut DA -> TK NH -> Rut tien mat -> Chi tra -> Nop lai
+// (data/txns/plan/payments/banks/config/TODAY_ISO da duoc khai bao va nap tu API o dau file)
+// =========================================================
+function dmy(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+function sum(arr, filterFn){ return arr.filter(filterFn).reduce((s,x)=>s+x.sotien,0); }
+function bankName(id){ const b = banks.find(x=>x.id===id); return b ? b.name : id; }
+function fillBankSelect(sel, selected, includeAll){
+  sel.innerHTML = '';
+  if(includeAll){
+    const optAll = document.createElement('option');
+    optAll.value = 'all'; optAll.textContent = 'Toàn bộ ngân hàng';
+    if(selected==='all') optAll.selected = true;
+    sel.appendChild(optAll);
+  }
+  banks.forEach(b=>{
+    const opt = document.createElement('option');
+    opt.value = b.id; opt.textContent = `${b.id} - ${b.name}`;
+    if(b.id===selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+function dotFundedBank(dot){
+  const t = txns.find(x=>x.loai==="Rút từ Dự án" && x.dot===dot);
+  return t ? t.nh : null;
+}
+
+function quyTienMat(){
+  return sum(txns, x=>x.loai==="Rút tiền mặt từ NH") - sum(txns, x=>x.loai==="Nộp tiền mặt vào NH") - payments.reduce((s,p)=>s+p.sotien,0);
+}
+function tkNganHang(nh){
+  return sum(txns, x=>x.loai==="Rút từ Dự án" && x.nh===nh) - sum(txns, x=>x.loai==="Rút tiền mặt từ NH" && x.nh===nh)
+       + sum(txns, x=>x.loai==="Nộp tiền mặt vào NH" && x.nh===nh) - sum(txns, x=>x.loai==="Nộp NSNN thay dân" && x.nh===nh)
+       + sum(txns, x=>x.loai==="Nhận lãi ngân hàng" && x.nh===nh);
+}
+function doiSoatNgay(ngayISO, nh){
+  const rut = sum(txns, x=>x.loai==="Rút tiền mặt từ NH" && x.ngay===ngayISO && x.nh===nh);
+  const daChi = payments.filter(p=>p.ngay===ngayISO && p.nh===nh).reduce((s,p)=>s+p.sotien,0);
+  const daNop = sum(txns, x=>x.loai==="Nộp tiền mặt vào NH" && x.ngay===ngayISO && x.nh===nh);
+  const chenh = rut - daChi - daNop;
+  let trangThai, cls;
+  if(chenh===0){ trangThai="✓ Đã chốt đủ trong ngày"; cls="badge-ok"; }
+  else if(ngayISO < TODAY_ISO){ trangThai=`⚠ QUÁ HẠN - chưa nộp lại ${fmt(chenh)} (NH ${nh})`; cls="badge-danger"; }
+  else { trangThai=`⏳ Đang thực hiện chi trả trong ngày...`; cls="badge-warn"; }
+  return { rut, daChi, daNop, chenh, trangThai, cls };
+}
+
+function addDaysISO(iso, n){
+  const d = new Date(iso);
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+
+// So tien mat con lai tai 1 ngan hang, tinh LUY KE tu truoc den het ngay "uptoDate"
+// (rut - da chi - da nop, cong don moi ngay, khong chi rieng 1 lenh rut)
+function cumulativeCashAtBank(nh, uptoDate){
+  return sum(txns, x=>x.loai==="Rút tiền mặt từ NH" && x.nh===nh && x.ngay<=uptoDate)
+       - payments.filter(p=>p.nh===nh && p.ngay<=uptoDate).reduce((s,p)=>s+p.sotien,0)
+       - sum(txns, x=>x.loai==="Nộp tiền mặt vào NH" && x.nh===nh && x.ngay<=uptoDate);
+}
+
+// Tim ngay rut tien mat SOM NHAT cua 1 ngan hang van con QUA HAN (truoc hom nay, chua nop lai het)
+function bankOverdueDate(nh){
+  const overdue = txns
+    .filter(x=>x.loai==="Rút tiền mặt từ NH" && x.nh===nh && x.ngay<TODAY_ISO && doiSoatNgay(x.ngay, x.nh).chenh!==0)
+    .sort((a,b)=>a.ngay.localeCompare(b.ngay));
+  return overdue.length ? overdue[0].ngay : null;
+}
+
+function renderRutNop(){
+  const qm = quyTienMat();
+  let soNgayQuaHan = 0;
+  txns.filter(x=>x.loai==="Rút tiền mặt từ NH").forEach(x=>{ if(doiSoatNgay(x.ngay, x.nh).chenh!==0 && x.ngay<TODAY_ISO) soNgayQuaHan++; });
+
+  document.getElementById('kpiQuyMat').innerHTML = `<div class="kpi-label">Số dư quỹ tiền mặt (gộp, đang cầm)</div><div class="kpi-val mono">${fmt(qm)}</div>`;
+  const kpiQH = document.getElementById('kpiQuaHan');
+  kpiQH.innerHTML = `<div class="kpi-label">Ngày quá hạn chưa chốt nộp lại</div><div class="kpi-val" style="color:${soNgayQuaHan>0?'var(--danger)':'var(--success)'}">${soNgayQuaHan} ngày</div>`;
+
+  const bankBox = document.getElementById('kpiBanks');
+  bankBox.innerHTML = '';
+  banks.forEach(b=>{
+    const bal = tkNganHang(b.id);
+    const card = document.createElement('div');
+    card.className = 'kpi';
+    card.style.setProperty('--accent', '#00695C');
+    card.innerHTML = `<div class="kpi-label">TK ${b.name} (${b.id})</div><div class="kpi-val mono" style="font-size:17px">${fmt(bal)}</div><div class="kpi-sub">${b.stk ? 'STK: '+b.stk+' · ' : ''}Lãi suất KKH: ${(b.kkh*100).toFixed(2)}%/năm</div>`;
+    bankBox.appendChild(card);
+  });
+
+  const body = document.getElementById('rutnopBody');
+  body.innerHTML = '';
+  const badgeClass = { "Rút từ Dự án":"badge-ok", "Rút tiền mặt từ NH":"badge-neutral", "Nộp tiền mặt vào NH":"badge-warn", "Nộp NSNN thay dân":"badge-danger", "Nhận lãi ngân hàng":"badge-ok" };
+  txns.slice().sort((a,b)=>a.ngay.localeCompare(b.ngay)).forEach(x=>{
+    const tr = document.createElement('tr');
+    const doiSoatCell = x.loai==="Rút tiền mặt từ NH"
+      ? (()=>{ const d = doiSoatNgay(x.ngay, x.nh); return `<span class="badge ${d.cls}">${d.trangThai}</span>`; })()
+      : '';
+    tr.innerHTML = `
+      <td>${dmy(x.ngay)}</td>
+      <td><span class="badge ${badgeClass[x.loai]||'badge-ok'}">${x.loai}${x.dot?(' - Đợt '+x.dot):''}</span></td>
+      <td class="mono">${x.nh}</td>
+      <td class="num mono">${fmt(x.sotien)}</td>
+      <td>${x.nguoi}</td>
+      <td style="color:var(--muted); font-size:12px;">${x.ghichu||''}</td>
+      <td>${doiSoatCell}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function dotsCanDA(){
+  // Danh sach dot DA KHOA va VAN CON ho chua co Ngay Rut DA
+  return Object.keys(dotLockStatus).map(Number).filter(d => dotLockStatus[d] && data.some(h=>h.dot===d && !h.ngayRutDA));
+}
+
+let txPrefillDot = null; // Dot duoc chi dinh san khi mo modal tu menu "Rut tien tu DA"
+
+function openTxnModal(prefill){
+  // Neu duoc goi tu Ke hoach hoac Rut tien tu DA, chuyen sang tab Rut/Nop truoc de nguoi dung thay dung ngu canh
+  if(prefill){
+    document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+    document.querySelector('[data-page="rutnop"]').classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+    document.getElementById('page-rutnop').style.display='block';
+  }
+  document.getElementById('overlayTxn').classList.add('show');
+  const loaiSelect = document.getElementById('tx_loai');
+  // "Rut tu Du an" khong con la lua chon thu cong (da co menu rieng "Rut tien tu DA") - chi xuat hien
+  // TAM THOI trong dropdown khi modal duoc mo VOI prefill tu chinh menu do, roi go di ngay sau.
+  let daInjectOpt = loaiSelect.querySelector('option[value="Rút từ Dự án"]');
+  if(prefill?.loai === "Rút từ Dự án"){
+    if(!daInjectOpt){
+      daInjectOpt = document.createElement('option');
+      daInjectOpt.value = "Rút từ Dự án";
+      daInjectOpt.textContent = "Rút từ Dự án";
+      loaiSelect.insertBefore(daInjectOpt, loaiSelect.firstChild);
+    }
+    loaiSelect.value = "Rút từ Dự án";
+    loaiSelect.disabled = true;
+  } else {
+    if(daInjectOpt) daInjectOpt.remove();
+    loaiSelect.disabled = false;
+    loaiSelect.value = prefill?.loai || "Rút tiền mặt từ NH";
+  }
+  document.getElementById('tx_ngay').value = prefill?.ngay || TODAY_ISO;
+  fillBankSelect(document.getElementById('tx_nh'), prefill?.nh || "NH1");
+  document.getElementById('tx_sotien').value = prefill?.sotien || "";
+  document.getElementById('tx_ghichu').value = prefill?.ghichu || "";
+  txPrefillDot = prefill?.dot || null;
+  onTxnTypeChange();
+}
+function closeTxnModal(){ document.getElementById('overlayTxn').classList.remove('show'); }
+function onTxnTypeChange(){
+  const loai = document.getElementById('tx_loai').value;
+  const ngay = document.getElementById('tx_ngay').value;
+  const nh = document.getElementById('tx_nh').value;
+  const dotField = document.getElementById('tx_dot_field');
+  const dotSelect = document.getElementById('tx_dot');
+  const box = document.getElementById('txMsgBox');
+  const sotienInput = document.getElementById('tx_sotien');
+  const saveBtn = document.getElementById('txSaveBtn');
+  // Mac dinh: cho sua tay so tien, tru truong hop Nop tien mat vao NH (tinh tu dong ben duoi)
+  sotienInput.readOnly = false;
+  sotienInput.classList.remove('readonly-field');
+  saveBtn.classList.remove('blocked');
+
+  // KIEM TRA QUA HAN: neu ngan hang dang chon con ton tai chua nop lai tu ngay truoc do,
+  // va giao dich dang tao KHONG PHAI dung ngay backdate do -> chan lai, bat xu ly ngay hom truoc truoc
+  const odDate = nh ? bankOverdueDate(nh) : null;
+  if(odDate && ngay && ngay > odDate){
+    box.style.display='block';
+    document.getElementById('txMsg').className='quota-msg warn';
+    document.getElementById('txMsg').innerHTML = `⚠ NGÂN HÀNG ${nh} CÒN TỒN QUÁ HẠN từ ngày ${dmy(odDate)} — phải xử lý (nộp lại) xong ngày đó trước khi thao tác các ngày sau. `
+      + `<span style="text-decoration:underline; cursor:pointer; font-weight:700;" onclick="document.getElementById('tx_ngay').value='${odDate}'; onTxnTypeChange();">Chuyển ngày giao dịch về ${dmy(odDate)} để xử lý ngay →</span>`;
+    saveBtn.classList.add('blocked');
+    return;
+  }
+
+  if(loai==="Rút từ Dự án"){
+    dotField.style.display = '';
+    dotSelect.innerHTML = '';
+    if(txPrefillDot){
+      const opt = document.createElement('option');
+      opt.value = txPrefillDot; opt.textContent = `Đợt ${txPrefillDot}`;
+      dotSelect.appendChild(opt);
+      dotSelect.disabled = true;
+      box.style.display='block';
+      document.getElementById('txMsg').className='quota-msg ok';
+      document.getElementById('txMsg').textContent = `💡 Rút cho Đợt ${txPrefillDot} theo danh sách hộ đã chọn ở menu "Rút tiền từ DA".`;
+    } else {
+      const eligible = dotsCanDA();
+      if(eligible.length===0){
+        const opt = document.createElement('option');
+        opt.textContent = '— Không có đợt nào cần rút DA —';
+        dotSelect.appendChild(opt);
+        dotSelect.disabled = true;
+        box.style.display='block';
+        document.getElementById('txMsg').className='quota-msg warn';
+        document.getElementById('txMsg').textContent = `⚠ Không có đợt nào đã khóa và còn hộ cần rút DA. Vào "Danh mục hộ dân" để tạo đợt mới + nhập hộ + khóa đợt trước.`;
+        saveBtn.classList.add('blocked');
+      } else {
+        eligible.forEach(d=>{
+          const opt = document.createElement('option');
+          opt.value = d; opt.textContent = `Đợt ${d}`;
+          dotSelect.appendChild(opt);
+        });
+        dotSelect.disabled = false;
+        box.style.display='block';
+        document.getElementById('txMsg').className='quota-msg ok';
+        document.getElementById('txMsg').textContent = `💡 Chọn đợt cần rút thêm tiền DA. Khuyến khích dùng menu "Rút tiền từ DA" để chọn đúng danh sách hộ và tự cập nhật Ngày Rút DA cho từng hộ.`;
+      }
+    }
+  } else if(loai==="Nộp tiền mặt vào NH"){
+    dotField.style.display = 'none';
+    const conLai = ngay && nh ? cumulativeCashAtBank(nh, ngay) : 0;
+    sotienInput.value = conLai>0 ? conLai : 0;
+    sotienInput.readOnly = true;
+    sotienInput.classList.add('readonly-field');
+    box.style.display='block';
+    if(conLai>0){
+      document.getElementById('txMsg').className='quota-msg ok';
+      document.getElementById('txMsg').textContent = `💡 Số tiền TỰ ĐỘNG TÍNH = tiền mặt còn lại lũy kế tại ${nh} tính đến hết ngày ${dmy(ngay)} (không sửa được, tránh nộp sai số).`;
+    } else {
+      document.getElementById('txMsg').className='quota-msg ok';
+      document.getElementById('txMsg').textContent = `💡 Tại ${nh||'__'}, tính đến ngày ${ngay?dmy(ngay):'__'} hiện không có khoản nào cần nộp lại (đã chốt đủ hoặc chưa có lệnh rút tiền mặt).`;
+    }
+  } else if(loai==="Rút tiền mặt từ NH"){
+    dotField.style.display = 'none';
+    box.style.display='block';
+    document.getElementById('txMsg').className='quota-msg ok';
+    document.getElementById('txMsg').textContent = '💡 Sau khi lưu, chỉ được chi trả cho hộ dân vào ĐÚNG ngày này VÀ ĐÚNG ngân hàng này.';
+  } else {
+    dotField.style.display = 'none';
+    box.style.display='none';
+  }
+}
+async function saveTxn(){
+  const loai = document.getElementById('tx_loai').value;
+  const ngay = document.getElementById('tx_ngay').value;
+  const nh = document.getElementById('tx_nh').value;
+  let sotien = parseFloat(document.getElementById('tx_sotien').value) || 0;
+  let dot;
+  if(loai==="Rút từ Dự án"){
+    const dotSelect = document.getElementById('tx_dot');
+    if(dotSelect.disabled && !txPrefillDot){ toast('❌ Không có đợt nào hợp lệ để rút DA'); return; }
+    dot = parseInt(dotSelect.value);
+  }
+  const ghichu = document.getElementById('tx_ghichu').value;
+  if(sotien<=0){ toast('❌ Nhập số tiền hợp lệ'); return; }
+
+  const res = await apiPost('themGiaoDich', { ngay, loai, sotien, nh, dot, ghichu, nguoi: 'Nguyễn Việt Anh' });
+  if(!res.success){ toast('❌ ' + res.error); return; }
+
+  closeTxnModal();
+  if(res.soHoHuy > 0){
+    toast(`Đã nộp lại ${fmt(res.soTienNop)} về ${nh} — đồng thời GỠ ${res.soHoHuy} hộ đang chờ chi trả thuộc khoản này (tiền đã trả về ngân hàng, cần lập kế hoạch rút mới nếu muốn chi tiếp)`);
+  } else {
+    toast('Đã lưu giao dịch: ' + loai + (dot?(' - Đợt '+dot):'') + ' (' + nh + ') - ' + fmt(res.soTienNop || sotien));
+  }
+  await refreshAllData();
+}
+
+// =========================================================
+// MENU RUT TIEN TU DA: chon dot -> tich ho -> tao lenh rut (link sang Rut/Nop NH)
+// =========================================================
+let rutdaSelectedDot = null;
+const selectedRutDAIds = new Set();
+
+function renderRutDADotChips(){
+  const box = document.getElementById('rutdaDotChips');
+  if(!box) return;
+  box.innerHTML = '';
+  const eligibleDots = dotsCanDA();
+  if(rutdaSelectedDot && !eligibleDots.includes(rutdaSelectedDot)) rutdaSelectedDot = null;
+  if(eligibleDots.length===0){
+    box.innerHTML = '<span style="color:var(--muted); font-size:12.5px;">Không có đợt nào cần rút thêm tiền từ DA (đợt phải được KHÓA ở Danh mục hộ dân trước, và còn hộ chưa có Ngày Rút DA).</span>';
+  }
+  eligibleDots.forEach(d=>{
+    const count = data.filter(h=>h.dot===d && !h.ngayRutDA).length;
+    const chip = document.createElement('div');
+    chip.className = 'dot-chip' + (rutdaSelectedDot===d ? ' active' : '');
+    chip.textContent = `Đợt ${d} (${count} hộ chưa rút)`;
+    chip.onclick = () => { rutdaSelectedDot = d; selectedRutDAIds.clear(); renderRutDADotChips(); renderRutDAChecklist(); };
+    box.appendChild(chip);
+  });
+}
+function renderRutDAChecklist(){
+  const bankLine = document.getElementById('rutdaBankLine');
+  const list = document.getElementById('rutdaCheckList');
+  if(!bankLine || !list) return;
+  if(!rutdaSelectedDot){
+    bankLine.innerHTML = '';
+    list.innerHTML = '<div class="wait-empty">Chọn 1 đợt ở trên để xem danh sách hộ.</div>';
+    updateRutDASelectedInfo();
+    return;
+  }
+  const existingBank = dotFundedBank(rutdaSelectedDot);
+  if(existingBank){
+    bankLine.innerHTML = `Ngân hàng của đợt này: <b>${existingBank} - ${bankName(existingBank)}</b> (đã cố định từ lần rút đầu tiên).`;
+  } else {
+    bankLine.innerHTML = `Đây là LẦN RÚT ĐẦU TIÊN của Đợt ${rutdaSelectedDot} — chọn ngân hàng sẽ nhận tiền: <select id="rutdaBankSelect" style="margin-left:8px; padding:5px 8px; border-radius:6px; border:1px solid var(--border);"></select>`;
+    fillBankSelect(document.getElementById('rutdaBankSelect'), 'NH1');
+  }
+  const eligible = data.filter(h=>h.dot===rutdaSelectedDot && !h.ngayRutDA);
+  list.innerHTML = '';
+  eligible.forEach(h=>{
+    const checked = selectedRutDAIds.has(h.id);
+    const card = document.createElement('div');
+    card.className = 'wait-card';
+    card.style.cursor = 'default';
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px;">
+        <input type="checkbox" ${checked?'checked':''} onchange="toggleRutDASelect('${h.id}', this.checked)" style="width:17px; height:17px; cursor:pointer;">
+        <div class="wc-left">
+          <span class="wc-name">${h.name}</span>
+          <span class="wc-meta">${h.id} · QĐ ${h.qd} ngày ${h.ngay}</span>
+        </div>
+      </div>
+      <span class="wc-amount">${fmt(h.nhan)}</span>`;
+    list.appendChild(card);
+  });
+  updateRutDASelectedInfo();
+}
+function toggleRutDASelect(hoId, checked){
+  if(checked) selectedRutDAIds.add(hoId); else selectedRutDAIds.delete(hoId);
+  updateRutDASelectedInfo();
+}
+function toggleSelectAllRutDA(checked){
+  if(!rutdaSelectedDot) return;
+  data.filter(h=>h.dot===rutdaSelectedDot && !h.ngayRutDA).forEach(h=>{
+    if(checked) selectedRutDAIds.add(h.id); else selectedRutDAIds.delete(h.id);
+  });
+  renderRutDAChecklist();
+}
+function updateRutDASelectedInfo(){
+  const ids = [...selectedRutDAIds];
+  const tong = ids.reduce((s,id)=>{ const h=data.find(x=>x.id===id); return s+(h?h.nhan:0); },0);
+  document.getElementById('rutdaSelectedCount').textContent = ids.length;
+  document.getElementById('rutdaSelectedTotal').textContent = fmt(tong);
+}
+function taoLenhRutDA(){
+  withBusyGuard(async ()=>{
+    if(!rutdaSelectedDot){ toast('❌ Chưa chọn đợt'); return; }
+    if(selectedRutDAIds.size===0){ toast('❌ Chưa tích chọn hộ nào'); return; }
+    const existingBank = dotFundedBank(rutdaSelectedDot);
+    const bankSelectEl = document.getElementById('rutdaBankSelect');
+    const bank = existingBank || (bankSelectEl ? bankSelectEl.value : 'NH1');
+    const ids = [...selectedRutDAIds];
+    const tong = ids.reduce((s,id)=>{ const h=data.find(x=>x.id===id); return s+(h?h.nhan:0); },0);
+    if(!confirm(`Xác nhận RÚT ${fmt(tong)} từ Dự án cho ${ids.length} hộ (Đợt ${rutdaSelectedDot}, ${bank})?`)) return;
+    const res = await apiPost('rutTienTuDA', { soDot: rutdaSelectedDot, nganHang: bank, hoIds: ids, nguoi: 'Nguyễn Việt Anh' });
+    if(!res.success){ toast('❌ ' + res.error); return; }
+    selectedRutDAIds.clear();
+    toast(`Đã rút ${fmt(res.soTien)} về ${res.nganHang} cho ${res.soHo} hộ — đã cập nhật Ngày Rút DA`);
+    await refreshAllData();
+  });
+}
+
+// =========================================================
+// CHI TRA - bat buoc co lenh rut tien mat cung ngay, cung ngan hang
+// =========================================================
+function renderChiTra(){
+  const body = document.getElementById('chitraBody');
+  body.innerHTML = '';
+  const order = payments.map((_,i)=>i).sort((i1,i2)=>{
+    const c = payments[i1].ngay.localeCompare(payments[i2].ngay);
+    return sortHistoryDesc ? -c : c;
+  });
+  if(order.length===0){
+    body.innerHTML = '<tr><td colspan="9" style="color:var(--muted); text-align:center; padding:16px;">Chưa có lịch sử chi trả nào</td></tr>';
+    return;
+  }
+  order.forEach(idx=>{
+    const p = payments[idx];
+    const h = data.find(x=>x.id===p.hoId);
+    if(!h) return;
+    const soNgay = Math.round((new Date(p.ngay) - new Date(h.ngayRutDA)) / 86400000);
+    const lockBadge = p.locked ? '<span class="badge badge-ok">🔒 Đã khóa</span>' : '<span class="badge badge-warn">Chưa khóa</span>';
+    const lockBtn = p.locked
+      ? `<div class="icon-btn disabled" title="Đã khóa">🔒</div>`
+      : `<div class="icon-btn" onclick="lockPayment(${idx})" title="Khóa dữ liệu">🔓</div>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="name-cell">${h.name}<span class="id">${h.id}</span></td>
+      <td>${dmy(h.ngayRutDA)}</td>
+      <td>${dmy(p.ngay)} <span style="color:var(--muted); font-size:11px;">(${p.nh})</span></td>
+      <td class="num mono">${soNgay}</td>
+      <td class="num mono">${fmt(p.sotien)}</td>
+      <td class="num mono">${fmt(p.lai)}</td>
+      <td class="num mono">${fmt(p.tongchi)}</td>
+      <td>${lockBadge}</td>
+      <td class="row-actions">
+        ${lockBtn}
+        <div class="icon-btn print" onclick="printBienBan(${idx},'giao')" title="In biên bản bàn giao mặt bằng">📄1</div>
+        <div class="icon-btn print" onclick="printBienBan(${idx},'nhan')" title="In biên bản nhận tiền bồi thường">📄2</div>
+      </td>`;
+    body.appendChild(tr);
+  });
+}
+async function lockPayment(idx){
+  const p = payments[idx];
+  const res = await apiPost('khoaChiTra', { hoId: p.hoId, ngay: p.ngay });
+  if(!res.success){ toast('❌ ' + (res.error||'Không khóa được')); return; }
+  toast('Đã khóa dữ liệu chi trả — sẵn sàng in 2 biên bản');
+  await refreshAllData();
+}
+function printBienBan(idx, loai){
+  const p = payments[idx];
+  const h = data.find(x=>x.id===p.hoId);
+  if(loai==='giao'){ p.printGiao = true; toast('Đang xuất Biên bản bàn giao mặt bằng - ' + h.name); }
+  else { p.printNhan = true; toast('Đang xuất Biên bản nhận tiền bồi thường - ' + h.name); }
+}
+
+// =========================================================
+// HANG DOI SAN SANG CHI TRA: chi hien ho DA len ke hoach VA NH da rut tien mat
+// =========================================================
+let readyBankFilter = 'all';
+const selectedReadyIds = new Set();
+
+function getExecDate(){
+  return document.getElementById('chitra_ngay_thuchien').value;
+}
+function isFunded(ngay, nh){
+  return txns.some(x=>x.loai==="Rút tiền mặt từ NH" && x.ngay===ngay && x.nh===nh);
+}
+// Danh sach ngan hang dang bi CHAN o ngay thuc hien dang chon (vi con qua han o 1 ngay truoc do)
+function blockedBanksAtExecDate(execDate){
+  return banks.filter(b=>{
+    const od = bankOverdueDate(b.id);
+    return od && execDate !== od;
+  });
+}
+function readyQueue(){
+  const execDate = getExecDate();
+  const blocked = new Set(blockedBanksAtExecDate(execDate).map(b=>b.id));
+  return plan.filter(p=>{
+    const h = data.find(x=>x.id===p.hoId);
+    if(!h || h.chi>=h.nhan) return false;
+    if(blocked.has(p.nh)) return false;
+    // Ngay thuc hien PHAI dung bang ngay da khai bao trong ke hoach (p.ngay) - khong duoc lech ngay,
+    // ke ca khi ngan hang do co rut tien mat vao 1 ngay khac (khoan do khong danh cho ho nay).
+    if(p.ngay !== execDate) return false;
+    return isFunded(execDate, p.nh);
+  });
+}
+function onExecDateChange(){
+  selectedReadyIds.clear();
+  renderReadyBankChips();
+  renderReadyList();
+}
+function goToOverdueDate(ngay){
+  document.getElementById('chitra_ngay_thuchien').value = ngay;
+  onExecDateChange();
+}
+
+function renderOverdueBanner(){
+  const execDate = getExecDate();
+  const blocked = blockedBanksAtExecDate(execDate);
+  const box = document.getElementById('overdueBanner');
+  if(blocked.length===0){ box.innerHTML=''; return; }
+  box.innerHTML = blocked.map(b=>{
+    const od = bankOverdueDate(b.id);
+    const soTien = cumulativeCashAtBank(b.id, od);
+    return `<div class="quota-msg warn" style="margin:10px 18px 0;">⚠ ${b.id} - ${b.name} còn tồn ${fmt(soTien)} CHƯA NỘP LẠI từ ngày ${dmy(od)} — phải xử lý xong ngày đó (nộp lại hoặc chi trả bù) trước khi chi trả cho ngân hàng này vào ngày ${dmy(execDate)}. `
+      + `<span style="text-decoration:underline; cursor:pointer; font-weight:700;" onclick="goToOverdueDate('${od}')">Chuyển Ngày thực hiện về ${dmy(od)} để xử lý →</span></div>`;
+  }).join('');
+}
+
+function renderReadyBankChips(){
+  renderOverdueBanner();
+  const queue = readyQueue();
+  const box = document.getElementById('readyBankChips');
+  box.innerHTML = '';
+  const allChip = document.createElement('div');
+  allChip.className = 'dot-chip' + (readyBankFilter==='all' ? ' active' : '');
+  allChip.textContent = `Tất cả (${queue.length})`;
+  allChip.onclick = () => { readyBankFilter='all'; renderReadyBankChips(); renderReadyList(); };
+  box.appendChild(allChip);
+  banks.forEach(b=>{
+    const count = queue.filter(p=>p.nh===b.id).length;
+    if(count===0) return;
+    const chip = document.createElement('div');
+    chip.className = 'dot-chip' + (readyBankFilter===b.id ? ' active' : '');
+    chip.textContent = `${b.id} - ${b.name} (${count})`;
+    chip.onclick = () => { readyBankFilter=b.id; renderReadyBankChips(); renderReadyList(); };
+    box.appendChild(chip);
+  });
+  if(queue.length===0){
+    box.innerHTML += '<span style="color:var(--muted); font-size:12.5px;">Không có hộ nào sẵn sàng chi trả vào ngày này — lên kế hoạch và tạo lệnh rút ở tab "Kế hoạch chi trả" trước, hoặc đổi Ngày thực hiện.</span>';
+  }
+}
+
+function renderReadyList(){
+  const box = document.getElementById('readyList');
+  const execDate = getExecDate();
+  const list = readyQueue().filter(p => readyBankFilter==='all' || p.nh===readyBankFilter);
+  box.innerHTML = '';
+  if(list.length===0){
+    box.innerHTML = '<div class="wait-empty">Không có hộ nào sẵn sàng chi trả trong lựa chọn này.</div>';
+  } else {
+    list.forEach(p=>{
+      const h = data.find(x=>x.id===p.hoId);
+      const checked = selectedReadyIds.has(p.hoId);
+      const card = document.createElement('div');
+      card.className = 'wait-card';
+      card.style.cursor = 'default';
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px;">
+          <input type="checkbox" ${checked?'checked':''} onchange="toggleReadySelect('${p.hoId}', this.checked)" style="width:17px; height:17px; cursor:pointer;">
+          <div class="wc-left">
+            <span class="wc-name">${h.name}</span>
+            <span class="wc-meta">${h.id} · Đợt ${h.dot} · ${p.nh} - ${bankName(p.nh)} · Dự kiến ${dmy(p.ngay)} · Thực hiện ${dmy(execDate)}</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span class="wc-amount">${fmt(h.nhan-h.chi)}</span>
+        </div>`;
+      box.appendChild(card);
+    });
+  }
+  updateReadyCount();
+}
+function toggleReadySelect(hoId, checked){
+  if(checked) selectedReadyIds.add(hoId); else selectedReadyIds.delete(hoId);
+  updateReadyCount();
+}
+function toggleSelectAllReady(checked){
+  const list = readyQueue().filter(p => readyBankFilter==='all' || p.nh===readyBankFilter);
+  list.forEach(p=>{ if(checked) selectedReadyIds.add(p.hoId); else selectedReadyIds.delete(p.hoId); });
+  renderReadyList();
+}
+function updateReadyCount(){
+  document.getElementById('readyCount').textContent = selectedReadyIds.size;
+}
+function chiTraHangLoat(){
+  withBusyGuard(async ()=>{
+    if(selectedReadyIds.size===0){ toast('❌ Chưa chọn hộ nào để chi trả'); return; }
+    const execDate = getExecDate();
+    const hoIds = [...selectedReadyIds];
+    const res = await apiPost('chiTraHangLoat', { ngayThucHien: execDate, hoIds, nguoiChi: 'Nguyễn Việt Anh' });
+    if(!res.success){
+      toast('❌ ' + (res.errors && res.errors.length ? res.errors.join('; ') : (res.error||'Không chi trả được')));
+      return;
+    }
+    selectedReadyIds.clear();
+    let msg = `✅ Đã chi trả ${res.done} hộ, tổng ${fmt(res.tongTien)} (ngày ${dmy(execDate)})`;
+    if(res.errors && res.errors.length) msg += ` — Bỏ qua: ${res.errors.join('; ')}`;
+    toast(msg);
+    await refreshAllData();
+  });
+}
+
+function openPayModal(preselectHoId){
+  const sel = document.getElementById('pay_ho');
+  sel.innerHTML = '';
+  data.filter(h=>h.nhan>0 && h.chi<h.nhan).forEach(h=>{
+    const opt = document.createElement('option');
+    opt.value = h.id;
+    opt.textContent = `${h.id} - ${h.name} (còn ${fmt(h.nhan-h.chi)})`;
+    if(preselectHoId && h.id===preselectHoId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  document.getElementById('pay_ngay').value = getExecDate() || TODAY_ISO;
+  fillBankSelect(document.getElementById('pay_nh'), "NH1");
+  document.getElementById('overlayPay').classList.add('show');
+  updatePayCheck();
+}
+function closePayModal(){ document.getElementById('overlayPay').classList.remove('show'); }
+function updatePayCheck(){
+  const ngay = document.getElementById('pay_ngay').value;
+  const nh = document.getElementById('pay_nh').value;
+  const msg = document.getElementById('payMsg');
+  const btn = document.getElementById('paySaveBtn');
+
+  const od = bankOverdueDate(nh);
+  if(od && ngay > od){
+    document.getElementById('payRutLine').textContent = '—';
+    msg.className='quota-msg warn';
+    msg.innerHTML = `⚠ ${nh} còn tồn quá hạn từ ngày ${dmy(od)} — phải xử lý xong ngày đó trước. `
+      + `<span style="text-decoration:underline; cursor:pointer; font-weight:700;" onclick="document.getElementById('pay_ngay').value='${od}'; updatePayCheck();">Chuyển ngày về ${dmy(od)} →</span>`;
+    btn.classList.add('blocked');
+    return false;
+  }
+
+  const rut = sum(txns, x=>x.loai==="Rút tiền mặt từ NH" && x.ngay===ngay && x.nh===nh);
+  document.getElementById('payRutLine').textContent = fmt(rut) + (rut===0 ? '' : ` (đã rút ngày ${dmy(ngay)}, NH ${nh})`);
+  if(rut===0){
+    msg.className='quota-msg warn';
+    msg.textContent = `⚠ CHƯA CÓ LỆNH RÚT TIỀN MẶT NGÀY ${dmy(ngay)} TẠI NGÂN HÀNG ${nh} - KHÔNG ĐƯỢC CHI TRẢ. Không thể lưu.`;
+    btn.classList.add('blocked');
+    return false;
+  }
+  msg.className='quota-msg ok';
+  msg.textContent = '✓ Đã có lệnh rút tiền mặt đúng ngày, đúng ngân hàng — có thể chi trả.';
+  btn.classList.remove('blocked');
+  return true;
+}
+function savePay(){
+  withBusyGuard(async ()=>{
+    if(!updatePayCheck()){ toast('❌ Không thể lưu — kiểm tra lại ngày/ngân hàng (có thể còn tồn quá hạn cần xử lý trước)'); return; }
+    const hoId = document.getElementById('pay_ho').value;
+    const ngay = document.getElementById('pay_ngay').value;
+    const nh = document.getElementById('pay_nh').value;
+    const h = data.find(x=>x.id===hoId);
+    if(!h){ toast('Vui lòng chọn hộ'); return; }
+    const res = await apiPost('chiTraThuCong', { hoId, ngay, nh, nguoiChi: 'Nguyễn Việt Anh' });
+    if(!res.success){ toast('❌ ' + res.error); return; }
+    closePayModal();
+    toast(`Đã ghi nhận chi trả ${h.name}: ${fmt(res.soTienChi)} + lãi ${fmt(res.lai)} (NH ${nh})`);
+    await refreshAllData();
+  });
+}
+
+// =========================================================
+// LICH SU DA CHI TRA - sap xep theo ngay
+// =========================================================
+let sortHistoryDesc = true;
+function toggleSortHistory(){
+  sortHistoryDesc = !sortHistoryDesc;
+  document.getElementById('sortLabel').textContent = sortHistoryDesc ? 'Mới nhất trước' : 'Cũ nhất trước';
+  renderChiTra();
+}
+
+// =========================================================
+// LAP KE HOACH CHI TRA NGAY MAI (T+1)
+// =========================================================
+function tomorrowISO(){
+  const d = new Date(TODAY_ISO);
+  d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
+const selectedPlanIds = new Set();
+
+function getEligiblePlanHouseholds(){
+  const bankFilter = document.getElementById('plan_nh_top').value;
+  const plannedIds = new Set(plan.map(p=>p.hoId));
+  return data.filter(h=>{
+    if(!(h.nhan>0 && h.chi<h.nhan && !plannedIds.has(h.id))) return false;
+    if(!h.ngayRutDA) return false; // BAT BUOC da co Ngay Rut DA (da duoc rut tien tu DA) moi duoc len ke hoach chi tra
+    if(bankFilter==='all') return true;
+    return dotFundedBank(h.dot)===bankFilter;
+  });
+}
+function renderPlanChecklist(){
+  const box = document.getElementById('planCheckList');
+  const eligible = getEligiblePlanHouseholds();
+  box.innerHTML = '';
+  if(eligible.length===0){
+    box.innerHTML = '<div class="wait-empty">Không có hộ nào phù hợp với ngân hàng đang chọn (hoặc đợt của hộ chưa được rút DA về ngân hàng nào).</div>';
+  } else {
+    eligible.forEach(h=>{
+      const checked = selectedPlanIds.has(h.id);
+      const nhCuaDot = dotFundedBank(h.dot);
+      const card = document.createElement('div');
+      card.className = 'wait-card';
+      card.style.cursor = 'default';
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px;">
+          <input type="checkbox" ${checked?'checked':''} onchange="togglePlanSelect('${h.id}', this.checked)" style="width:17px; height:17px; cursor:pointer;">
+          <div class="wc-left">
+            <span class="wc-name">${h.name}</span>
+            <span class="wc-meta">${h.id} · Đợt ${h.dot} (${nhCuaDot ? nhCuaDot+' - '+bankName(nhCuaDot) : 'chưa rút DA'}) · QĐ ${h.qd} ngày ${h.ngay}</span>
+          </div>
+        </div>
+        <span class="wc-amount">${fmt(h.nhan-h.chi)}</span>`;
+      box.appendChild(card);
+    });
+  }
+  const selectAllBox = document.getElementById('planSelectAll');
+  if(selectAllBox) selectAllBox.checked = eligible.length>0 && eligible.every(h=>selectedPlanIds.has(h.id));
+  updateCheckedCount();
+}
+function togglePlanSelect(hoId, checked){
+  if(checked) selectedPlanIds.add(hoId); else selectedPlanIds.delete(hoId);
+  updateCheckedCount();
+  const selectAllBox = document.getElementById('planSelectAll');
+  const eligible = getEligiblePlanHouseholds();
+  if(selectAllBox) selectAllBox.checked = eligible.length>0 && eligible.every(h=>selectedPlanIds.has(h.id));
+}
+function toggleSelectAllPlan(checked){
+  getEligiblePlanHouseholds().forEach(h=>{
+    if(checked) selectedPlanIds.add(h.id); else selectedPlanIds.delete(h.id);
+  });
+  renderPlanChecklist();
+}
+function updateCheckedCount(){
+  document.getElementById('checkedCount').textContent = selectedPlanIds.size;
+}
+function addSelectedToPlan(){
+  withBusyGuard(async ()=>{
+    if(selectedPlanIds.size===0){ toast('❌ Chưa tích chọn hộ nào'); return; }
+    const ngay = document.getElementById('plan_ngay_top').value;
+    if(!ngay){ toast('❌ Vui lòng chọn ngày dự kiến chi trả'); return; }
+    if(ngay < TODAY_ISO){
+      toast(`❌ Ngày dự kiến chi trả phải TỪ HÔM NAY (${dmy(TODAY_ISO)}) TRỞ ĐI — không thể lập kế hoạch cho ngày đã qua`);
+      return;
+    }
+    const nhChon = document.getElementById('plan_nh_top').value;
+    const hoIds = [...selectedPlanIds];
+    const res = await apiPost('themKeHoach', { ngay, nh: nhChon, hoIds });
+    if(!res.success && res.added===0){ toast('❌ ' + (res.errors ? res.errors.join('; ') : (res.error||'Không thêm được'))); return; }
+    selectedPlanIds.clear();
+    let msg = `Đã thêm ${res.added} hộ vào kế hoạch chi trả ngày ${dmy(ngay)}`;
+    if(res.errors && res.errors.length) msg += ` — Bỏ qua: ${res.errors.join('; ')}`;
+    toast(msg);
+    await refreshAllData();
+  });
+}
+
+let planViewBankFilter = 'all';
+function renderPlanViewChips(){
+  const box = document.getElementById('planViewChips');
+  if(!box) return;
+  box.innerHTML = '';
+  const allChip = document.createElement('div');
+  allChip.className = 'dot-chip' + (planViewBankFilter==='all' ? ' active' : '');
+  allChip.textContent = `Toàn bộ (${plan.length})`;
+  allChip.onclick = () => { planViewBankFilter='all'; renderPlan(); };
+  box.appendChild(allChip);
+  banks.forEach(b=>{
+    const count = plan.filter(p=>p.nh===b.id).length;
+    const chip = document.createElement('div');
+    chip.className = 'dot-chip' + (planViewBankFilter===b.id ? ' active' : '');
+    chip.textContent = `${b.id} - ${b.name} (${count})`;
+    chip.onclick = () => { planViewBankFilter=b.id; renderPlan(); };
+    box.appendChild(chip);
+  });
+}
+function renderPlan(){
+  renderPlanViewChips();
+  const body = document.getElementById('planBody');
+  body.innerHTML = '';
+  const filtered = plan.filter(p => planViewBankFilter==='all' || p.nh===planViewBankFilter);
+  filtered.forEach(pl=>{
+    const idx = plan.indexOf(pl);
+    const h = data.find(x=>x.id===pl.hoId);
+    if(!h) return;
+    const conLai = h.nhan - h.chi;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${dmy(pl.ngay)}</td>
+      <td class="name-cell">${h.name}<span class="id">${h.id}</span></td>
+      <td class="num mono">${fmt(conLai)}</td>
+      <td><span class="badge badge-neutral">${pl.nh} - ${bankName(pl.nh)}</span></td>
+      <td style="color:var(--muted); font-size:12px;">${pl.ghichu||''}</td>
+      <td class="row-actions"><div class="icon-btn" onclick="removePlan(${idx})" title="Xóa khỏi kế hoạch">✕</div></td>`;
+    body.appendChild(tr);
+  });
+  if(filtered.length===0){
+    body.innerHTML = `<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:16px;">${plan.length===0 ? 'Chưa có hộ nào trong kế hoạch' : 'Không có hộ nào của ngân hàng này trong kế hoạch'}</td></tr>`;
+  }
+}
+function renderPlanSummary(){
+  const sumBody = document.getElementById('planSummaryBody');
+  sumBody.innerHTML = '';
+  const ngayList = [...new Set(plan.map(p=>p.ngay))];
+  ngayList.forEach(ngay=>{
+    banks.forEach(b=>{
+      const rows = plan.filter(p=>p.ngay===ngay && p.nh===b.id);
+      if(rows.length===0) return;
+      const tong = rows.reduce((s,p)=>{
+        const h = data.find(x=>x.id===p.hoId);
+        return s + (h ? (h.nhan-h.chi) : 0);
+      }, 0);
+      const daTao = isFunded(ngay, b.id);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${dmy(ngay)}</td>
+        <td>${b.id} - ${b.name}</td>
+        <td class="num mono">${rows.length}</td>
+        <td class="num mono">${fmt(tong)}</td>
+        <td>${daTao ? '<span class="badge badge-ok">✓ Đã tạo lệnh rút</span>' : '<span class="badge badge-danger">⚠ Chưa tạo lệnh rút</span>'}</td>
+        <td>${daTao ? '' : `<button class="btn btn-teal" style="padding:6px 12px; font-size:12px;" onclick="openTxnModal({loai:'Rút tiền mặt từ NH', ngay:'${ngay}', nh:'${b.id}', sotien:${tong}, ghichu:'Rút theo kế hoạch (${rows.length} hộ)'})">Tạo lệnh rút →</button>`}</td>`;
+      sumBody.appendChild(tr);
+    });
+  });
+  if(ngayList.length===0){
+    sumBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px;">Chưa có kế hoạch nào</td></tr>';
+  }
+}
+async function removePlan(idx){
+  const p = plan[idx];
+  if(!p) return;
+  const res = await apiPost('huyKeHoach', { hoId: p.hoId });
+  if(!res.success){ toast('❌ ' + (res.error||'Không xóa được')); return; }
+  toast('Đã xóa hộ khỏi kế hoạch');
+  await refreshAllData();
+}
+async function huyTatCaKeHoach(){
+  const targets = plan.filter(p => planViewBankFilter==='all' || p.nh===planViewBankFilter);
+  if(targets.length===0){ toast('❌ Không có hộ nào trong kế hoạch để hủy'); return; }
+  const label = planViewBankFilter==='all' ? 'TOÀN BỘ' : `ngân hàng ${planViewBankFilter}`;
+  if(!confirm(`Xác nhận HỦY ${targets.length} hộ (${label}) khỏi kế hoạch chi trả? Hành động này không hoàn tác được.`)) return;
+  const res = await apiPost('huyKeHoach', { nh: planViewBankFilter });
+  if(!res.success){ toast('❌ ' + (res.error||'Không hủy được')); return; }
+  toast(`Đã hủy ${res.deleted} hộ khỏi kế hoạch (${label})`);
+  await refreshAllData();
+}
+
+function changeWorkingDate(newDate){
+  if(!newDate) return;
+  TODAY_ISO = newDate;
+  document.getElementById('todayInput').value = TODAY_ISO;
+  // Cap nhat lai cac gia tri mac dinh phu thuoc vao ngay lam viec
+  document.getElementById('plan_ngay_top').min = TODAY_ISO;
+  if(document.getElementById('plan_ngay_top').value < TODAY_ISO){
+    document.getElementById('plan_ngay_top').value = tomorrowISO();
+  }
+  document.getElementById('chitra_ngay_thuchien').value = TODAY_ISO;
+  selectedReadyIds.clear();
+  // Ve lai TOAN BO man hinh co phu thuoc ngay lam viec (qua han, chan ngan hang, kiem soat quy...)
+  renderRutNop();
+  renderQuotaSummary();
+  renderChiTra();
+  renderPlan();
+  renderPlanSummary();
+  renderPlanChecklist();
+  renderReadyBankChips();
+  renderReadyList();
+  renderHodanChips();
+  renderTable(getHodanFiltered());
+  renderRutDADotChips();
+  renderRutDAChecklist();
+  toast(`Đã đổi NGÀY LÀM VIỆC hệ thống sang ${dmy(TODAY_ISO)} — dùng để nhập lại/bổ sung dữ liệu của các ngày trước đó`);
+}
+
+document.getElementById('plan_ngay_top').value = tomorrowISO();
+document.getElementById('plan_ngay_top').min = TODAY_ISO;
+document.getElementById('todayInput').value = TODAY_ISO;
+fillBankSelect(document.getElementById('plan_nh_top'), 'all', true);
+
+// =========================================================
+// TRANG CAU HINH: thong tin chung + danh muc ngan hang
+// =========================================================
+function loadConfigFormValues(){
+  document.getElementById('cf_tenDuAn').value = config.tenDuAn;
+  document.getElementById('cf_phuong').value = config.phuong;
+  document.getElementById('cf_laiSuatTraDan').value = (config.laiSuatTraDan*100).toFixed(3);
+  document.getElementById('cf_soNgayNam').value = config.soNgayNam;
+}
+async function saveConfigGeneral(){
+  const tenDuAn = document.getElementById('cf_tenDuAn').value;
+  const phuong = document.getElementById('cf_phuong').value;
+  const pct = parseFloat(document.getElementById('cf_laiSuatTraDan').value);
+  const nd = parseInt(document.getElementById('cf_soNgayNam').value);
+  const res = await apiPost('luuCauHinh', {
+    tenDuAn, phuong,
+    laiSuatTraDan: isNaN(pct) ? undefined : pct,
+    soNgayNam: isNaN(nd) ? undefined : nd,
+  });
+  if(!res.success){ toast('❌ ' + (res.error||'Không lưu được')); return; }
+  toast('✅ Đã lưu tham số chung — áp dụng ngay cho mọi công thức tính lãi trong hệ thống');
+  await refreshAllData();
+}
+
+function renderBankConfig(){
+  const body = document.getElementById('bankConfigBody');
+  body.innerHTML = '';
+  banks.forEach(b=>{
+    const usedInTxn = txns.some(x=>x.nh===b.id) || plan.some(p=>p.nh===b.id) || payments.some(p=>p.nh===b.id);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono" style="font-weight:700;">${b.id}</td>
+      <td><input value="${b.name}" onchange="updateBankField('${b.id}','name',this.value)" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-family:Inter;"></td>
+      <td><input value="${b.stk}" placeholder="Chưa nhập" onchange="updateBankField('${b.id}','stk',this.value)" class="mono" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:6px 8px;"></td>
+      <td><input value="${b.branch}" onchange="updateBankField('${b.id}','branch',this.value)" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-family:Inter;"></td>
+      <td class="num"><input value="${(b.kkh*100).toFixed(3)}" type="number" step="0.001" onchange="updateBankField('${b.id}','kkh',this.value/100)" class="mono" style="width:90px; text-align:right; border:1px solid var(--border); border-radius:6px; padding:6px 8px;"></td>
+      <td><input value="${b.lienHe}" onchange="updateBankField('${b.id}','lienHe',this.value)" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-family:Inter;"></td>
+      <td><input value="${b.ghichu}" onchange="updateBankField('${b.id}','ghichu',this.value)" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-family:Inter;"></td>
+      <td>${usedInTxn ? `<div class="icon-btn disabled" title="Đã phát sinh giao dịch - không thể xóa">🔒</div>` : `<div class="icon-btn" onclick="removeBank('${b.id}')" title="Xóa ngân hàng">✕</div>`}</td>`;
+    body.appendChild(tr);
+  });
+}
+async function updateBankField(id, field, value){
+  const res = await apiPost('suaNganHang', { id, field, value });
+  if(!res.success){ toast('❌ ' + (res.error||'Không cập nhật được')); return; }
+  toast(`Đã cập nhật ${field} cho ${id}`);
+  await refreshAllData();
+}
+async function addBank(){
+  const res = await apiPost('themNganHang', { name:"Ngân hàng mới", stk:"", branch:"", kkh:0.001, lienHe:"", ghichu:"" });
+  if(!res.success){ toast('❌ ' + (res.error||'Không thêm được')); return; }
+  toast(`Đã thêm ${res.id} — sửa thông tin ngay trong bảng`);
+  await refreshAllData();
+}
+async function removeBank(id){
+  if(!confirm(`Xác nhận xóa ${id} khỏi danh mục ngân hàng?`)) return;
+  const res = await apiPost('xoaNganHang', { id });
+  if(!res.success){ toast('❌ ' + (res.error||'Không xóa được')); return; }
+  toast(`Đã xóa ${id}`);
+  await refreshAllData();
+}
+
+loadConfigFormValues();
+renderBankConfig();
+
+document.getElementById('chitra_ngay_thuchien').value = TODAY_ISO;
+renderTable(getHodanFiltered());
+renderRutNop();
+renderChiTra();
+renderPlan();
+renderPlanSummary();
+renderPlanChecklist();
+renderReadyBankChips();
+renderReadyList();
+renderRutDADotChips();
+renderRutDAChecklist();
+</script>
+</body>
+</html>
