@@ -301,6 +301,7 @@
   <div class="brand-branch">Tràng Tiền &middot; Hà Nội</div>
   <div class="brand-slogan">BIDV đồng hành cùng Ban QLDA phường Tương Mai trong công tác giải phóng mặt bằng</div>
   <div class="today-badge">📅 Ngày làm việc hệ thống<br><input type="date" id="todayInput" onchange="changeWorkingDate(this.value)" style="margin-top:4px; width:100%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:6px; padding:5px 7px; font-family:'IBM Plex Mono',monospace; font-size:12.5px;"><small>Đổi để nhập lại dữ liệu dự án cũ</small></div>
+  <div id="backdateIndicator" style="display:none; margin:6px 10px 0; padding:8px 10px; background:rgba(242,169,61,.2); border:1px solid rgba(242,169,61,.5); border-radius:8px; font-size:11px; color:#FFE1AE; line-height:1.5;"></div>
   <nav id="nav">
     <div class="navitem active" data-page="tongquan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Tổng quan</div>
     <div class="navitem" data-page="hodan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg>Danh mục hộ dân</div>
@@ -500,7 +501,7 @@
 
       <div class="table-card" style="margin-bottom:16px;">
         <div class="table-tools" style="flex-wrap:wrap; gap:14px;">
-          <div class="field" style="margin:0;"><label style="font-size:11.5px;">Dự kiến ngày chi trả <span style="color:var(--muted); font-weight:400;">(≥ hôm nay)</span></label><input id="plan_ngay_top" type="date" style="padding:7px 9px;"></div>
+          <div class="field" style="margin:0;"><label style="font-size:11.5px;">Dự kiến ngày chi trả <span style="color:var(--muted); font-weight:400;">(≥ hôm nay)</span></label><input id="plan_ngay_top" type="date" style="padding:7px 9px;" onchange="renderPlanChecklist()"></div>
           <div class="field" style="margin:0;"><label style="font-size:11.5px;">Rút tiền từ ngân hàng nào?</label><select id="plan_nh_top" onchange="renderPlanChecklist()" style="padding:7px 9px;"></select></div>
           <button class="btn btn-teal" style="margin-left:auto;" onclick="addSelectedToPlan()">+ Thêm hộ đã tích vào kế hoạch (<span id="checkedCount">0</span>)</button>
         </div>
@@ -510,7 +511,7 @@
             <input type="checkbox" id="planSelectAll" onchange="toggleSelectAllPlan(this.checked)"> Tích chọn tất cả trong danh sách đang lọc
           </label>
         </div>
-        <div id="planCheckList" style="padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="planCheckList" style="padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto;"></div>
       </div>
 
       <div class="table-card" style="margin-bottom:16px;">
@@ -518,6 +519,10 @@
           <b style="font-size:13px; margin-right:4px;">Danh sách hộ đã đưa vào kế hoạch — lọc theo ngân hàng:</b>
           <div id="planViewChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
           <button class="btn btn-ghost" style="margin-left:auto; color:var(--danger); border-color:#F0B4B4;" onclick="huyTatCaKeHoach()">🗑 Hủy tất cả</button>
+        </div>
+        <div class="table-tools" style="flex-wrap:wrap; border-top:1px dashed var(--border);">
+          <b style="font-size:13px; margin-right:4px;">Lọc theo ngày dự kiến:</b>
+          <div id="planViewDateChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
         </div>
         <div class="table-scroll">
           <table>
@@ -942,11 +947,30 @@ window.addEventListener('beforeunload', ()=>{
     }catch(e){}
   }
 });
+// Dong bo dinh ky moi 1 phut (60000ms), ngoai viec dong bo khi chuyen tab - phong truong hop
+// nguoi dung o yen 1 tab qua lau ma khong chuyen sang tab khac, du lieu van duoc day len dinh ky.
+setInterval(()=>{
+  if(pendingQueue.length>0 && !isFlushing) flushPendingQueue(true);
+}, 60000);
 
 
 // Du lieu noi bo (duoc NAP LAI moi khi refreshAllData() chay) - giu nguyen ten bien/truong
 // nhu ban demo de toan bo logic render/tinh toan phia duoi KHONG can sua.
 let TODAY_ISO = "2026-07-12"; // Ngay lam viec cua he thong - CO THE THAY DOI de nhap lai du lieu du an cu (backfill), duoc dong bo tu server o refreshAllData()
+let REAL_TODAY_ISO = null;    // Ngay THAT theo server (khong bi anh huong boi backdate) - dung de so sanh phat hien che do backdate
+let isBackdateMode = false;   // true = dang lam viec voi 1 ngay qua khu khac ngay that (che do backdate)
+const BACKDATE_KEY = 'gpmb_backdate_date_v1'; // luu vao localStorage de KHONG mat khi F5/tai lai trang
+function renderBackdateIndicator(){
+  const el = document.getElementById('backdateIndicator');
+  if(!el) return;
+  if(isBackdateMode){
+    el.style.display = 'block';
+    el.innerHTML = `🕐 ĐANG Ở CHẾ ĐỘ BACKDATE — ngày làm việc <b>${dmy(TODAY_ISO)}</b> (khác ngày thật ${dmy(REAL_TODAY_ISO)}). Đổi lại đúng ngày thật để thoát chế độ này.`;
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
 
 let data = [];
 let txns = [];
@@ -1084,7 +1108,23 @@ async function refreshAllData(){
   config.laiSuatTraDan = Number(res.config.laiSuatTraDan) || 0.002;
   config.soNgayNam = Number(res.config.soNgayNam) || 365;
 
-  if(res.today) TODAY_ISO = res.today;
+  if(res.today){
+    REAL_TODAY_ISO = res.today; // luon ghi nho ngay THAT cua server, dung de so sanh phat hien backdate
+    const saved = localStorage.getItem(BACKDATE_KEY);
+    if(saved && saved !== REAL_TODAY_ISO){
+      // Dang co 1 ngay backdate da luu tu truoc (khac ngay that) -> uu tien dung ngay nay,
+      // KHONG de bi F5/tai lai trang lam mat che do backdate.
+      TODAY_ISO = saved;
+      isBackdateMode = true;
+    } else {
+      // Khong co backdate luu, HOAC ngay backdate da luu trung voi ngay that (thoi gian da troi qua
+      // toi dung ngay do) -> tu dong thoat che do backdate, dung ngay that cua server.
+      if(saved) localStorage.removeItem(BACKDATE_KEY);
+      TODAY_ISO = REAL_TODAY_ISO;
+      isBackdateMode = false;
+    }
+    renderBackdateIndicator();
+  }
 
   // --- VE LAI TOAN BO GIAO DIEN ---
   renderAllUI();
@@ -2187,6 +2227,7 @@ function getEligiblePlanHouseholds(){
 function renderPlanChecklist(){
   const box = document.getElementById('planCheckList');
   const eligible = getEligiblePlanHouseholds();
+  const ngayDuKien = document.getElementById('plan_ngay_top').value;
   box.innerHTML = '';
   if(eligible.length===0){
     box.innerHTML = '<div class="wait-empty">Không có hộ nào phù hợp với ngân hàng đang chọn (hoặc đợt của hộ chưa được rút DA về ngân hàng nào).</div>';
@@ -2194,15 +2235,19 @@ function renderPlanChecklist(){
     eligible.forEach(h=>{
       const checked = selectedPlanIds.has(h.id);
       const nhCuaDot = dotFundedBank(h.dot);
+      // Ngay du kien chi tra BAT BUOC phai >= Ngay Rut DA cua chinh ho do (khong the len ke hoach
+      // chi truoc khi tien ve - quan trong khi dung che do backdate de nhap lai du lieu cu)
+      const hopLe = !ngayDuKien || ngayDuKien >= h.ngayRutDA;
       const card = document.createElement('div');
       card.className = 'wait-card';
       card.style.cursor = 'default';
+      if(!hopLe) card.style.opacity = '0.5';
       card.innerHTML = `
         <div style="display:flex; align-items:center; gap:12px;">
-          <input type="checkbox" ${checked?'checked':''} onchange="togglePlanSelect('${h.id}', this.checked)" style="width:17px; height:17px; cursor:pointer;">
+          <input type="checkbox" ${checked?'checked':''} ${hopLe?'':'disabled'} onchange="togglePlanSelect('${h.id}', this.checked)" style="width:17px; height:17px; cursor:pointer;">
           <div class="wc-left">
             <span class="wc-name">${h.name}</span>
-            <span class="wc-meta">${h.id} · Đợt ${h.dot} (${nhCuaDot ? nhCuaDot+' - '+bankName(nhCuaDot) : 'chưa rút DA'}) · QĐ ${h.qd} ngày ${h.ngay}</span>
+            <span class="wc-meta">${h.id} · Đợt ${h.dot} (${nhCuaDot ? nhCuaDot+' - '+bankName(nhCuaDot) : 'chưa rút DA'}) · QĐ ${h.qd} ngày ${h.ngay} · Rút DA ${dmy(h.ngayRutDA)}${hopLe?'':' ⚠ Ngày dự kiến đang chọn TRƯỚC ngày rút DA - không hợp lệ'}</span>
           </div>
         </div>
         <span class="wc-amount">${fmt(h.nhan-h.chi)}</span>`;
@@ -2247,6 +2292,7 @@ function addSelectedToPlan(){
 }
 
 let planViewBankFilter = 'all';
+let planViewDateFilter = 'all';
 function renderPlanViewChips(){
   const box = document.getElementById('planViewChips');
   if(!box) return;
@@ -2264,12 +2310,35 @@ function renderPlanViewChips(){
     chip.onclick = () => { planViewBankFilter=b.id; renderPlan(); };
     box.appendChild(chip);
   });
+
+  // --- Loc theo ngay du kien chi tra (danh sach cac ngay khac nhau dang co trong ke hoach) ---
+  const dateBox = document.getElementById('planViewDateChips');
+  if(dateBox){
+    dateBox.innerHTML = '';
+    const allDateChip = document.createElement('div');
+    allDateChip.className = 'dot-chip' + (planViewDateFilter==='all' ? ' active' : '');
+    allDateChip.textContent = `Toàn bộ ngày (${plan.length})`;
+    allDateChip.onclick = () => { planViewDateFilter='all'; renderPlan(); };
+    dateBox.appendChild(allDateChip);
+    const ngayList = [...new Set(plan.map(p=>p.ngay))].sort();
+    ngayList.forEach(ngay=>{
+      const count = plan.filter(p=>p.ngay===ngay).length;
+      const chip = document.createElement('div');
+      chip.className = 'dot-chip' + (planViewDateFilter===ngay ? ' active' : '');
+      chip.textContent = `${dmy(ngay)} (${count})`;
+      chip.onclick = () => { planViewDateFilter=ngay; renderPlan(); };
+      dateBox.appendChild(chip);
+    });
+  }
 }
 function renderPlan(){
   renderPlanViewChips();
   const body = document.getElementById('planBody');
   body.innerHTML = '';
-  const filtered = plan.filter(p => planViewBankFilter==='all' || p.nh===planViewBankFilter);
+  const filtered = plan.filter(p =>
+    (planViewBankFilter==='all' || p.nh===planViewBankFilter) &&
+    (planViewDateFilter==='all' || p.ngay===planViewDateFilter)
+  );
   const { slice } = paginateSlice('plan', filtered);
   slice.forEach(pl=>{
     const idx = plan.indexOf(pl);
@@ -2338,6 +2407,19 @@ function changeWorkingDate(newDate){
   if(!newDate) return;
   TODAY_ISO = newDate;
   document.getElementById('todayInput').value = TODAY_ISO;
+
+  // Xac dinh che do BACKDATE: neu ngay moi KHAC ngay THAT cua server -> bat che do backdate va
+  // LUU LAI vao localStorage (khong mat khi F5/tai lai trang). Chi khi nguoi dung chu dong doi
+  // ngay he thong VE DUNG ngay that thi moi thoat che do nay.
+  if(REAL_TODAY_ISO && newDate !== REAL_TODAY_ISO){
+    isBackdateMode = true;
+    localStorage.setItem(BACKDATE_KEY, newDate);
+  } else {
+    isBackdateMode = false;
+    localStorage.removeItem(BACKDATE_KEY);
+  }
+  renderBackdateIndicator();
+
   // Cap nhat lai cac gia tri mac dinh phu thuoc vao ngay lam viec
   document.getElementById('plan_ngay_top').min = TODAY_ISO;
   if(document.getElementById('plan_ngay_top').value < TODAY_ISO){
@@ -2358,7 +2440,9 @@ function changeWorkingDate(newDate){
   renderTable(getHodanFiltered());
   renderRutDADotChips();
   renderRutDAChecklist();
-  toast(`Đã đổi NGÀY LÀM VIỆC hệ thống sang ${dmy(TODAY_ISO)} — dùng để nhập lại/bổ sung dữ liệu của các ngày trước đó`);
+  toast(isBackdateMode
+    ? `🕐 Đã chuyển sang CHẾ ĐỘ BACKDATE, ngày làm việc = ${dmy(TODAY_ISO)} — sẽ được lưu lại kể cả khi tải lại trang, cho đến khi đổi về đúng ngày thật`
+    : `✅ Đã trở về ngày làm việc hiện tại (${dmy(TODAY_ISO)}) — thoát chế độ backdate`);
 }
 
 document.getElementById('plan_ngay_top').value = tomorrowISO();
