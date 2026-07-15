@@ -650,6 +650,80 @@
   </div>
 </div>
 
+<!-- MODAL CHI TIET / SUA HO DAN -->
+<div class="overlay" id="overlayHoDetail">
+  <div class="modal" style="width:560px;">
+    <h3 id="hd_title">Chi tiết hộ dân</h3>
+    <p class="hint" id="hd_hint"></p>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:8px 0 6px;">📋 Thông tin cơ bản</div>
+    <div class="field"><label>Họ và tên hộ</label><input id="hd_name"></div>
+    <div class="field-row">
+      <div class="field"><label>Số QĐ</label><input id="hd_qd" class="mono"></div>
+      <div class="field"><label>Ngày QĐ</label><input id="hd_ngayqd" type="date"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Tổng số tiền QĐ (đ)</label><input id="hd_tong" class="mono"></div>
+      <div class="field"><label>Tiền TĐC (đ)</label><input id="hd_tdc" class="mono"></div>
+    </div>
+    <div class="quota-box" style="margin-bottom:10px;">
+      <div class="quota-row"><span>Đợt:</span><b id="hd_dot" class="mono">—</b></div>
+      <div class="quota-row"><span>Ngày Rút DA:</span><b id="hd_ngayrutda" class="mono">—</b></div>
+      <div class="quota-row"><span>Dân nhận / Đã chi:</span><b id="hd_nhanchi" class="mono">—</b></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">📍 Thông tin đất đai</div>
+    <div class="field"><label>Địa chỉ thu hồi đất</label><input id="hd_diachi"></div>
+    <div class="field-row">
+      <div class="field"><label>DT đang sử dụng (m2)</label><input id="hd_dtsd" class="mono"></div>
+      <div class="field"><label>DT bàn giao (m2)</label><input id="hd_dtbg" class="mono"></div>
+      <div class="field"><label>DT bị thu hồi (m2)</label><input id="hd_dtth" class="mono"></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">🪪 Nhân thân đại diện hộ</div>
+    <div class="field-row">
+      <div class="field"><label>Họ tên người 1</label><input id="hd_hoten1"></div>
+      <div class="field"><label>Số CCCD</label><input id="hd_cccd1" class="mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày cấp</label><input id="hd_ngaycap1" type="date"></div>
+      <div class="field"><label>Nơi cấp</label><input id="hd_noicap1"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Họ tên người 2 (nếu có)</label><input id="hd_hoten2"></div>
+      <div class="field"><label>Số CCCD</label><input id="hd_cccd2" class="mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày cấp</label><input id="hd_ngaycap2" type="date"></div>
+      <div class="field"><label>Nơi cấp</label><input id="hd_noicap2"></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">✍️ Ủy quyền</div>
+    <div class="field"><label>Có ủy quyền?</label>
+      <select id="hd_uyquyen"><option value="Không">Không</option><option value="Có">Có</option></select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Họ tên người được ủy quyền</label><input id="hd_hotenuq"></div>
+      <div class="field"><label>Số CCCD</label><input id="hd_cccduq" class="mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ngày cấp</label><input id="hd_ngaycapuq" type="date"></div>
+      <div class="field"><label>Nơi cấp</label><input id="hd_noicapuq"></div>
+    </div>
+
+    <div style="font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 6px; border-top:1px solid var(--border); padding-top:12px;">📅 Bàn giao mặt bằng</div>
+    <div class="field-row">
+      <div class="field"><label>Ngày bàn giao thực tế</label><input id="hd_ngaybg" type="date"></div>
+      <div class="field"><label>Giờ bàn giao</label><input id="hd_giobg"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeHoDetailModal()">Đóng</button>
+      <button class="btn btn-primary" id="hd_saveBtn" onclick="saveHoDetail()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- MODAL GIAO DICH NGAN HANG -->
@@ -712,7 +786,7 @@
 // =========================================================
 // KET NOI BACKEND: dan URL Web App cua Apps Script (Code.gs) vao day sau khi Deploy
 // =========================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbz8DdF52EtEjpUfmhcIz38u7bteMs6rpt5cZECst2YmoxCgCjbW1v1jXgYTAdfQEXYtjA/exec";
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 async function apiGet(action, params){
   const qs = new URLSearchParams({ action, ...(params||{}) });
@@ -794,9 +868,15 @@ function queueAction(action, payload, dedupKey, label, replace){
 }
 
 /** Gui tuan tu toan bo hang doi len server. Neu 1 muc loi, GIU LAI trong hang doi de thu lai sau. */
+let isFlushing = false; // chan 2 lan flush chay chong len nhau (nguyen nhan gay ghi trung du lieu)
 async function flushPendingQueue(silent){
+  if(isFlushing) return; // dang co 1 lan dong bo khac chay roi, khong chay chong len (day la nguyen nhan gay trung lap truoc day)
   if(pendingQueue.length===0) return;
-  const dangXuLy = pendingQueue.slice();
+  isFlushing = true;
+  // XOA KHOI HANG DOI NGAY LAP TUC (dong bo, truoc bat ky await nao) - dam bao neu co lan goi
+  // flush khac xay ra gan nhu cung luc, no se thay hang doi da RONG va tu thoat, khong gui trung.
+  const dangXuLy = pendingQueue.splice(0, pendingQueue.length);
+  savePendingQueue();
   const conLai = [];
   const ketQua = [];
   if(!silent) toast(`⏳ Đang đồng bộ ${dangXuLy.length} thay đổi lên Google Sheet...`);
@@ -814,8 +894,9 @@ async function flushPendingQueue(silent){
       ketQua.push(`❌ ${item.label}: ${err.message}`);
     }
   }
-  pendingQueue = conLai;
+  pendingQueue.push(...conLai); // dua lai cac muc LOI (neu co) vao hang doi de thu lai sau
   savePendingQueue();
+  isFlushing = false;
   const soLoi = conLai.length;
   if(soLoi>0){
     toast(`⚠ Đồng bộ xong nhưng còn ${soLoi} việc lỗi (vẫn giữ trong hàng đợi để thử lại): ${ketQua.filter(k=>k.startsWith('❌')).join(' | ')}`);
@@ -1070,6 +1151,9 @@ function renderTable(rows){
     const laiCell = p ? fmt(p.lai) : '<span style="color:var(--muted);">—</span>';
     const tr = document.createElement('tr');
     if(h.isNew) tr.className = 'new-row';
+    tr.style.cursor = 'pointer';
+    tr.title = 'Bấm để xem chi tiết';
+    tr.onclick = ()=>openHoDetailModal(h.id);
     tr.innerHTML = `
       <td class="name-cell">${h.name}<span class="id">${h.id}</span></td>
       <td class="mono">${h.qd}</td>
@@ -1236,6 +1320,86 @@ function openModal(){
   }
 }
 function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+
+// =========================================================
+// MODAL CHI TIET / SUA HO DAN - xem duoc moi luc, CHI SUA duoc khi dot cua ho dang "Dang mo"
+// =========================================================
+let hoDetailEditing = null; // Ma ho dang mo popup chi tiet
+function isDotMoCuaHo(h){ return dotLockStatus[h.dot] === false; }
+
+function openHoDetailModal(hoId){
+  const h = data.find(x=>x.id===hoId);
+  if(!h) return;
+  hoDetailEditing = hoId;
+  const coTheSua = isDotMoCuaHo(h);
+
+  document.getElementById('hd_title').textContent = `Chi tiết hộ ${h.id}`;
+  document.getElementById('hd_hint').textContent = coTheSua
+    ? `Đợt ${h.dot} đang MỞ — có thể sửa thông tin hộ này.`
+    : `Đợt ${h.dot} đã KHÓA — chỉ xem, không sửa được (muốn sửa cần Trưởng nhóm mở khóa đợt).`;
+
+  const vals = {
+    hd_name: h.name, hd_qd: h.qd, hd_ngayqd: h.ngayISO, hd_tong: h.tong, hd_tdc: h.tdc||0,
+    hd_diachi: h.diaChiThuHoi, hd_dtsd: h.dienTichDangSuDung, hd_dtbg: h.dienTichBanGiao, hd_dtth: h.dienTichThuHoi,
+    hd_hoten1: h.hoTen1, hd_cccd1: h.cccd1, hd_ngaycap1: h.ngayCap1, hd_noicap1: h.noiCap1,
+    hd_hoten2: h.hoTen2, hd_cccd2: h.cccd2, hd_ngaycap2: h.ngayCap2, hd_noicap2: h.noiCap2,
+    hd_hotenuq: h.hoTenUyQuyen, hd_cccduq: h.cccdUyQuyen, hd_ngaycapuq: h.ngayCapUyQuyen, hd_noicapuq: h.noiCapUyQuyen,
+    hd_ngaybg: h.ngayBanGiao, hd_giobg: h.gioBanGiao,
+  };
+  Object.keys(vals).forEach(id=>{ document.getElementById(id).value = vals[id]||''; });
+  document.getElementById('hd_uyquyen').value = h.coUyQuyen || 'Không';
+  document.getElementById('hd_dot').textContent = h.dot;
+  document.getElementById('hd_ngayrutda').textContent = h.ngayRutDA ? dmy(h.ngayRutDA) : '⚠ Chưa rút DA';
+  document.getElementById('hd_nhanchi').textContent = `${fmt(h.nhan)} / ${fmt(h.chi)}`;
+
+  // Khoa/mo toan bo input tuy theo dot con mo hay da khoa
+  document.querySelectorAll('#overlayHoDetail input, #overlayHoDetail select').forEach(el=>{
+    el.disabled = !coTheSua;
+  });
+  document.getElementById('hd_saveBtn').style.display = coTheSua ? '' : 'none';
+
+  document.getElementById('overlayHoDetail').classList.add('show');
+}
+function closeHoDetailModal(){
+  document.getElementById('overlayHoDetail').classList.remove('show');
+  hoDetailEditing = null;
+}
+function saveHoDetail(){
+  const h = data.find(x=>x.id===hoDetailEditing);
+  if(!h) return;
+  if(!isDotMoCuaHo(h)){ toast('❌ Đợt đã khóa, không thể sửa'); return; }
+
+  const fields = {
+    name: document.getElementById('hd_name').value,
+    soQD: document.getElementById('hd_qd').value,
+    ngayQD: document.getElementById('hd_ngayqd').value,
+    tong: parseFloat(document.getElementById('hd_tong').value) || 0,
+    tdc: parseFloat(document.getElementById('hd_tdc').value) || 0,
+    diaChiThuHoi: document.getElementById('hd_diachi').value,
+    dienTichDangSuDung: parseFloat(document.getElementById('hd_dtsd').value) || 0,
+    dienTichBanGiao: parseFloat(document.getElementById('hd_dtbg').value) || 0,
+    dienTichThuHoi: parseFloat(document.getElementById('hd_dtth').value) || 0,
+    hoTen1: document.getElementById('hd_hoten1').value,
+    cccd1: document.getElementById('hd_cccd1').value,
+    ngayCap1: document.getElementById('hd_ngaycap1').value,
+    noiCap1: document.getElementById('hd_noicap1').value,
+    hoTen2: document.getElementById('hd_hoten2').value,
+    cccd2: document.getElementById('hd_cccd2').value,
+    ngayCap2: document.getElementById('hd_ngaycap2').value,
+    noiCap2: document.getElementById('hd_noicap2').value,
+    coUyQuyen: document.getElementById('hd_uyquyen').value,
+    hoTenUyQuyen: document.getElementById('hd_hotenuq').value,
+    cccdUyQuyen: document.getElementById('hd_cccduq').value,
+    ngayCapUyQuyen: document.getElementById('hd_ngaycapuq').value,
+    noiCapUyQuyen: document.getElementById('hd_noicapuq').value,
+    ngayBanGiao: document.getElementById('hd_ngaybg').value,
+    gioBanGiao: document.getElementById('hd_giobg').value,
+  };
+  const dedupKey = `suaThongTinHoDan:${h.id}`;
+  queueAction('suaThongTinHoDan', { id: h.id, fields }, dedupKey, `Sửa thông tin hộ ${h.id}`, true);
+  closeHoDetailModal();
+}
+
 async function addRow(){
   if(!currentOpenDot){
     toast('❌ Chưa có đợt nào đang mở — bấm "Tạo đợt mới" trước');
