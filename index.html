@@ -810,7 +810,7 @@
 // =========================================================
 // KET NOI BACKEND: dan URL Web App cua Apps Script (Code.gs) vao day sau khi Deploy
 // =========================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbz8DdF52EtEjpUfmhcIz38u7bteMs6rpt5cZECst2YmoxCgCjbW1v1jXgYTAdfQEXYtjA/exec";
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 async function apiGet(action, params){
   const qs = new URLSearchParams({ action, ...(params||{}) });
@@ -1181,7 +1181,8 @@ function renderDashboard(){
     work.push({attn:false, page:'rutda', title:`Đợt ${d} còn ${soHo} hộ chưa rút DA`, sub:'Vào "Rút tiền từ DA" để xử lý'});
   });
   banksQuaHan.forEach(b=>{
-    work.push({attn:true, page:'rutnop', title:`${b.id} - ${b.name} tồn quá hạn từ ${dmy(bankOverdueDate(b.id))}`, sub:'Bắt buộc xử lý (nộp lại hoặc chi trả bù) trước khi thao tác ngày mới'});
+    const od = bankOverdueDate(b.id);
+    work.push({attn:true, page:'rutnop', title:`${b.id} - ${b.name} tồn quá hạn từ ${dmy(od)}`, sub:'Không thể chi trả nữa - CHỈ có thể nộp lại tiền. Bấm để mở thẳng form nộp tiền', action:`openNopLaiModal('${b.id}','${od}')`});
   });
   chuaTaoLenhRut.forEach(p=>{
     const tong = plan.filter(x=>x.ngay===p.ngay && x.nh===p.nh).reduce((s,x)=>{ const h=data.find(y=>y.id===x.hoId); return s+(h?h.nhan-h.chi:0); },0);
@@ -1198,7 +1199,7 @@ function renderDashboard(){
   workEl.innerHTML = workDedup.length===0
     ? '<div class="wait-empty">🎉 Không có việc gì cần xử lý gấp lúc này.</div>'
     : workDedup.map(w=>`
-      <div class="work-item ${w.attn?'attn':''}" onclick="goToPage('${w.page}')" style="cursor:pointer;">
+      <div class="work-item ${w.attn?'attn':''}" onclick="${w.action || `goToPage('${w.page}')`}" style="cursor:pointer;">
         <div class="wi-dot"></div>
         <div class="wi-text"><b>${w.title}</b><span>${w.sub}</span></div>
       </div>`).join('');
@@ -1973,12 +1974,12 @@ function getExecDate(){
 function isFunded(ngay, nh){
   return txns.some(x=>x.loai==="Rút tiền mặt từ NH" && x.ngay===ngay && x.nh===nh);
 }
-// Danh sach ngan hang dang bi CHAN o ngay thuc hien dang chon (vi con qua han o 1 ngay truoc do)
+// Danh sach ngan hang dang bi CHAN CHI TRA hoan toan (con ton quy chua nop lai). KHONG CO NGOAI LE
+// theo ngay dang chon - dung voi quy tac phia server: hop dong da qua thi KHONG the chi tra lai duoc
+// nua (vi bat buoc phai in giay to cho dan ky DUNG NGAY dan den nhan tien) - CHI duoc phep "Nop tien
+// mat vao NH" de tra lai khoan ton, khong the "chi tra bu" cho ngay da qua.
 function blockedBanksAtExecDate(execDate){
-  return banks.filter(b=>{
-    const od = bankOverdueDate(b.id);
-    return od && execDate !== od;
-  });
+  return banks.filter(b => bankOverdueDate(b.id) !== null);
 }
 function readyQueue(){
   const execDate = getExecDate();
@@ -1998,10 +1999,6 @@ function onExecDateChange(){
   renderReadyBankChips();
   renderReadyList();
 }
-function goToOverdueDate(ngay){
-  document.getElementById('chitra_ngay_thuchien').value = ngay;
-  onExecDateChange();
-}
 
 function renderOverdueBanner(){
   const execDate = getExecDate();
@@ -2011,9 +2008,15 @@ function renderOverdueBanner(){
   box.innerHTML = blocked.map(b=>{
     const od = bankOverdueDate(b.id);
     const soTien = cumulativeCashAtBank(b.id, od);
-    return `<div class="quota-msg warn" style="margin:10px 18px 0;">⚠ ${b.id} - ${b.name} còn tồn ${fmt(soTien)} CHƯA NỘP LẠI từ ngày ${dmy(od)} — phải xử lý xong ngày đó (nộp lại hoặc chi trả bù) trước khi chi trả cho ngân hàng này vào ngày ${dmy(execDate)}. `
-      + `<span style="text-decoration:underline; cursor:pointer; font-weight:700;" onclick="goToOverdueDate('${od}')">Chuyển Ngày thực hiện về ${dmy(od)} để xử lý →</span></div>`;
+    return `<div class="quota-msg warn" style="margin:10px 18px 0; cursor:pointer;" onclick="openNopLaiModal('${b.id}','${od}')" title="Bấm để mở form nộp tiền, đã điền sẵn số tiền cần nộp">`
+      + `⚠ ${b.id} - ${b.name} còn tồn ${fmt(soTien)} CHƯA NỘP LẠI từ ngày ${dmy(od)} — KHÔNG THỂ chi trả cho ngân hàng này nữa (đã quá ngày, không thể in giấy tờ cho dân ký đúng ngày). Chỉ có thể xử lý bằng cách nộp lại tiền vào ngân hàng. `
+      + `<span style="text-decoration:underline; font-weight:700;">Bấm vào đây để mở form nộp tiền →</span></div>`;
   }).join('');
+}
+/** Mo thang modal Giao dich moi, dien san Loai=Nop tien mat vao NH + dung ngay/NH - so tien se
+ * TU DONG tinh lai chinh xac (khong sua duoc) ngay khi modal mo, khong can nguoi dung tu nhap. */
+function openNopLaiModal(nh, ngay){
+  openTxnModal({ loai:'Nộp tiền mặt vào NH', ngay, nh, ghichu:'Xử lý khoản tồn quá hạn' });
 }
 
 function renderReadyBankChips(){
