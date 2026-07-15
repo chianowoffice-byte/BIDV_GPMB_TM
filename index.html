@@ -153,6 +153,17 @@
 
   /* TABLE CARD */
   .table-card{background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+  .table-scroll{max-height:520px; overflow-y:auto; overflow-x:auto;}
+  .table-scroll table{margin:0;}
+  .table-scroll thead th{position:sticky; top:0; z-index:2;}
+  .pagination-bar{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 18px; border-top:1px solid var(--border); flex-wrap:wrap; background:var(--bg);}
+  .pg-info{font-size:12px; color:var(--muted);}
+  .pg-controls{display:flex; align-items:center; gap:6px;}
+  .pg-size{padding:5px 8px; border-radius:6px; border:1px solid var(--border); font-size:12px; font-family:'Inter';}
+  .pg-btn{width:28px; height:28px; border:1px solid var(--border); background:var(--surface); border-radius:6px; cursor:pointer; font-size:13px; color:var(--text);}
+  .pg-btn:disabled{opacity:.35; cursor:not-allowed;}
+  .pg-btn:not(:disabled):hover{border-color:var(--navy); color:var(--navy);}
+  .pg-page{font-size:12.5px; color:var(--text); font-weight:600; margin:0 4px; white-space:nowrap;}
   .table-tools{display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); flex-wrap:wrap;}
   .chip{
     font-size:12px; padding:6px 12px; border-radius:20px; border:1px solid var(--border);
@@ -379,13 +390,16 @@
           <b style="font-size:13px;">Lọc theo đợt:</b>
           <select id="hodanDotSelect" onchange="onHodanDotSelectChange()" style="padding:7px 10px; border-radius:8px; border:1px solid var(--border); font-size:13px; min-width:240px; font-family:'Inter';"></select>
         </div>
-        <table id="hodanTable">
-          <thead><tr>
-            <th>Hộ dân</th><th>Số QĐ</th><th>Ngày QĐ</th><th>Ngày Rút DA</th><th>Ngày chi trả</th>
-            <th class="num">Tổng QĐ</th><th class="num">Thực nhận</th><th class="num">Lãi</th><th class="num">Đã chi</th><th>Trạng thái</th>
-          </tr></thead>
-          <tbody id="hodanBody"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table id="hodanTable">
+            <thead><tr>
+              <th>Hộ dân</th><th>Số QĐ</th><th>Ngày QĐ</th><th>Ngày Rút DA</th><th>Ngày chi trả</th>
+              <th class="num">Tổng QĐ</th><th class="num">Thực nhận</th><th class="num">Lãi</th><th class="num">Đã chi</th><th>Trạng thái</th>
+            </tr></thead>
+            <tbody id="hodanBody"></tbody>
+          </table>
+        </div>
+        <div id="hodanPagination"></div>
         <div class="table-foot" id="hodanFoot"></div>
       </div>
     </div>
@@ -444,10 +458,13 @@
             Sắp xếp: <span id="sortLabel">Mới nhất trước</span> ⇅
           </button>
         </div>
-        <table>
-          <thead><tr><th>Hộ dân</th><th>Ngày Rút DA<br><span style="font-weight:400; text-transform:none;">(căn cứ tính lãi)</span></th><th>Ngày chi trả</th><th class="num">Số ngày chậm</th><th class="num">Thực nhận</th><th class="num">Lãi</th><th class="num">Tổng chi</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-          <tbody id="chitraBody"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Hộ dân</th><th>Ngày Rút DA<br><span style="font-weight:400; text-transform:none;">(căn cứ tính lãi)</span></th><th>Ngày chi trả</th><th class="num">Số ngày chậm</th><th class="num">Thực nhận</th><th class="num">Lãi</th><th class="num">Tổng chi</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="chitraBody"></tbody>
+          </table>
+        </div>
+        <div id="chitraPagination"></div>
       </div>
     </div>
 
@@ -465,10 +482,13 @@
       <div class="kpi-row" id="kpiBanks" style="margin-bottom:14px;"></div>
 
       <div class="table-card">
-        <table>
-          <thead><tr><th>Ngày</th><th>Loại giao dịch</th><th>Mã NH</th><th class="num">Số tiền</th><th>Người thực hiện</th><th>Ghi chú</th><th>Đối soát cuối ngày</th></tr></thead>
-          <tbody id="rutnopBody"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Ngày</th><th>Loại giao dịch</th><th>Mã NH</th><th class="num">Số tiền</th><th>Người thực hiện</th><th>Ghi chú</th><th>Đối soát cuối ngày</th></tr></thead>
+            <tbody id="rutnopBody"></tbody>
+          </table>
+        </div>
+        <div id="rutnopPagination"></div>
       </div>
     </div>
 
@@ -499,10 +519,13 @@
           <div id="planViewChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
           <button class="btn btn-ghost" style="margin-left:auto; color:var(--danger); border-color:#F0B4B4;" onclick="huyTatCaKeHoach()">🗑 Hủy tất cả</button>
         </div>
-        <table>
-          <thead><tr><th>Ngày dự kiến (T)</th><th>Hộ dân</th><th class="num">Số tiền còn phải chi</th><th>Ngân hàng phụ trách</th><th>Ghi chú</th><th></th></tr></thead>
-          <tbody id="planBody"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Ngày dự kiến (T)</th><th>Hộ dân</th><th class="num">Số tiền còn phải chi</th><th>Ngân hàng phụ trách</th><th>Ghi chú</th><th></th></tr></thead>
+            <tbody id="planBody"></tbody>
+          </table>
+        </div>
+        <div id="planPagination"></div>
       </div>
 
       <div class="table-card">
@@ -938,6 +961,66 @@ let currentRole = "canbo"; // "canbo" | "truongnhom"
 
 function isValidDateStr(s){ return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s); }
 
+// =========================================================
+// PHAN TRANG DUNG CHUNG - ap dung cho moi bang danh sach trong ung dung
+// (Ho dan, Rut/Nop NH, Ke hoach, Lich su chi tra...). Moi bang co 1 "key" rieng de nho
+// dang o trang may / co bao nhieu dong/trang, doc lap voi cac bang khac.
+// =========================================================
+const paginationState = {}; // { key: { page, pageSize } }
+function getPageState(key){
+  if(!paginationState[key]) paginationState[key] = { page: 1, pageSize: 20 };
+  return paginationState[key];
+}
+function paginateSlice(key, items){
+  const st = getPageState(key);
+  const totalPages = Math.max(1, Math.ceil(items.length / st.pageSize));
+  if(st.page > totalPages) st.page = totalPages;
+  if(st.page < 1) st.page = 1;
+  const start = (st.page - 1) * st.pageSize;
+  return { slice: items.slice(start, start + st.pageSize), totalPages, totalItems: items.length, page: st.page, pageSize: st.pageSize, start };
+}
+/** Ve thanh phan trang vao 1 the chua (containerId). rerenderFn se duoc goi lai khi doi trang/so dong. */
+function renderPaginationBar(containerId, key, items, rerenderFn){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(!items || items.length === 0){ el.innerHTML = ''; return; }
+  const info = paginateSlice(key, items);
+  const st = getPageState(key);
+  el.innerHTML = `
+    <div class="pagination-bar">
+      <div class="pg-info">Hiển thị ${info.slice.length ? (info.start+1) : 0}-${info.start + info.slice.length} / ${info.totalItems} bản ghi</div>
+      <div class="pg-controls">
+        <select class="pg-size">
+          <option value="20" ${st.pageSize===20?'selected':''}>20/trang</option>
+          <option value="50" ${st.pageSize===50?'selected':''}>50/trang</option>
+          <option value="100" ${st.pageSize===100?'selected':''}>100/trang</option>
+        </select>
+        <button class="pg-btn" data-act="first" ${info.page<=1?'disabled':''} title="Trang đầu">«</button>
+        <button class="pg-btn" data-act="prev" ${info.page<=1?'disabled':''} title="Trang trước">‹</button>
+        <span class="pg-page">Trang ${info.page}/${info.totalPages}</span>
+        <button class="pg-btn" data-act="next" ${info.page>=info.totalPages?'disabled':''} title="Trang sau">›</button>
+        <button class="pg-btn" data-act="last" ${info.page>=info.totalPages?'disabled':''} title="Trang cuối">»</button>
+      </div>
+    </div>`;
+  el.querySelector('.pg-size').onchange = (e)=>{
+    getPageState(key).pageSize = parseInt(e.target.value);
+    getPageState(key).page = 1;
+    rerenderFn();
+  };
+  el.querySelectorAll('.pg-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const s = getPageState(key);
+      const act = btn.dataset.act;
+      if(act==='first') s.page = 1;
+      else if(act==='prev') s.page = Math.max(1, s.page-1);
+      else if(act==='next') s.page = Math.min(info.totalPages, s.page+1);
+      else if(act==='last') s.page = info.totalPages;
+      rerenderFn();
+    };
+  });
+}
+
+
 /** Nap toan bo du lieu tu Google Sheet (qua Apps Script) va ve lai TOAN BO giao dien */
 async function refreshAllData(){
   let res;
@@ -1143,7 +1226,8 @@ function renderTable(rows){
     KHONG_PHAI_NHAN: 'badge-ok', DA_CHI_DU: 'badge-ok',
     DA_CO_TIEN_DA: 'badge-neutral', CHO_RUT_DA: 'badge-warn', DANG_NHAP: 'badge-warn',
   };
-  rows.forEach(h=>{
+  const { slice } = paginateSlice('hodan', rows);
+  slice.forEach(h=>{
     const trangthai = `<span class="badge ${statusBadgeClass[h.status]||'badge-warn'}">${h.statusLabel||''}</span>`;
     const p = findPayment(h.id);
     const lockBadge = (p && p.locked) ? ` <span class="lock-badge" title="Đã khóa dữ liệu chi trả">🔒</span>` : '';
@@ -1168,10 +1252,11 @@ function renderTable(rows){
       <td>${trangthai}${lockBadge}</td>`;
     body.appendChild(tr);
   });
+  renderPaginationBar('hodanPagination', 'hodan', rows, ()=>renderTable(rows));
   const foot = document.getElementById('hodanFoot');
   if(foot){
     const tongQD = rows.reduce((s,h)=>s+h.tong,0);
-    foot.innerHTML = `<span>Hiển thị ${rows.length} / ${data.length} hộ</span><span>Tổng QĐ: <b class="mono">${fmt(tongQD)}</b></span>`;
+    foot.innerHTML = `<span>Đang lọc ${rows.length} / ${data.length} hộ</span><span>Tổng QĐ (toàn bộ đang lọc): <b class="mono">${fmt(tongQD)}</b></span>`;
   }
 }
 
@@ -1216,6 +1301,7 @@ function renderHodanChips(){
 function onHodanDotSelectChange(){
   const v = document.getElementById('hodanDotSelect').value;
   hodanDotFilter = (v==='all') ? 'all' : Number(v);
+  getPageState('hodan').page = 1;
   renderTable(getHodanFiltered());
 }
 renderHodanChips();
@@ -1276,6 +1362,7 @@ function toggleRole(){
 }
 
 document.getElementById('searchBox').addEventListener('input', ()=>{
+  getPageState('hodan').page = 1;
   renderTable(getHodanFiltered());
 });
 
@@ -1557,7 +1644,9 @@ function renderRutNop(){
   const body = document.getElementById('rutnopBody');
   body.innerHTML = '';
   const badgeClass = { "Rút từ Dự án":"badge-ok", "Rút tiền mặt từ NH":"badge-neutral", "Nộp tiền mặt vào NH":"badge-warn", "Nộp NSNN thay dân":"badge-danger", "Nhận lãi ngân hàng":"badge-ok" };
-  txns.slice().sort((a,b)=>a.ngay.localeCompare(b.ngay)).forEach(x=>{
+  const txnsSorted = txns.slice().sort((a,b)=>a.ngay.localeCompare(b.ngay));
+  const { slice } = paginateSlice('rutnop', txnsSorted);
+  slice.forEach(x=>{
     const tr = document.createElement('tr');
     const doiSoatCell = x.loai==="Rút tiền mặt từ NH"
       ? (()=>{ const d = doiSoatNgay(x.ngay, x.nh); return `<span class="badge ${d.cls}">${d.trangThai}</span>`; })()
@@ -1572,6 +1661,7 @@ function renderRutNop(){
       <td>${doiSoatCell}</td>`;
     body.appendChild(tr);
   });
+  renderPaginationBar('rutnopPagination', 'rutnop', txnsSorted, renderRutNop);
 }
 
 function dotsCanDA(){
@@ -1827,9 +1917,11 @@ function renderChiTra(){
   });
   if(order.length===0){
     body.innerHTML = '<tr><td colspan="9" style="color:var(--muted); text-align:center; padding:16px;">Chưa có lịch sử chi trả nào</td></tr>';
+    document.getElementById('chitraPagination').innerHTML = '';
     return;
   }
-  order.forEach(idx=>{
+  const { slice } = paginateSlice('chitra', order);
+  slice.forEach(idx=>{
     const p = payments[idx];
     const h = data.find(x=>x.id===p.hoId);
     if(!h) return;
@@ -1855,6 +1947,7 @@ function renderChiTra(){
       </td>`;
     body.appendChild(tr);
   });
+  renderPaginationBar('chitraPagination', 'chitra', order, renderChiTra);
 }
 function lockPayment(idx){
   const p = payments[idx];
@@ -2174,7 +2267,8 @@ function renderPlan(){
   const body = document.getElementById('planBody');
   body.innerHTML = '';
   const filtered = plan.filter(p => planViewBankFilter==='all' || p.nh===planViewBankFilter);
-  filtered.forEach(pl=>{
+  const { slice } = paginateSlice('plan', filtered);
+  slice.forEach(pl=>{
     const idx = plan.indexOf(pl);
     const h = data.find(x=>x.id===pl.hoId);
     if(!h) return;
@@ -2192,6 +2286,7 @@ function renderPlan(){
   if(filtered.length===0){
     body.innerHTML = `<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:16px;">${plan.length===0 ? 'Chưa có hộ nào trong kế hoạch' : 'Không có hộ nào của ngân hàng này trong kế hoạch'}</td></tr>`;
   }
+  renderPaginationBar('planPagination', 'plan', filtered, renderPlan);
 }
 function renderPlanSummary(){
   const sumBody = document.getElementById('planSummaryBody');
