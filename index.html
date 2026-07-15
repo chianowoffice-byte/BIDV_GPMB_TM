@@ -718,6 +718,7 @@
     </div>
 
     <div class="modal-actions">
+      <button class="btn btn-ghost" id="hd_deleteBtn" onclick="deleteHoDetail()" style="margin-right:auto; color:var(--danger); border-color:#F0B4B4;">🗑 Xóa hộ dân</button>
       <button class="btn btn-ghost" onclick="closeHoDetailModal()">Đóng</button>
       <button class="btn btn-primary" id="hd_saveBtn" onclick="saveHoDetail()">Lưu thay đổi</button>
     </div>
@@ -786,7 +787,7 @@
 // =========================================================
 // KET NOI BACKEND: dan URL Web App cua Apps Script (Code.gs) vao day sau khi Deploy
 // =========================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbz8DdF52EtEjpUfmhcIz38u7bteMs6rpt5cZECst2YmoxCgCjbW1v1jXgYTAdfQEXYtjA/exec";
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 async function apiGet(action, params){
   const qs = new URLSearchParams({ action, ...(params||{}) });
@@ -1357,6 +1358,7 @@ function openHoDetailModal(hoId){
     el.disabled = !coTheSua;
   });
   document.getElementById('hd_saveBtn').style.display = coTheSua ? '' : 'none';
+  document.getElementById('hd_deleteBtn').style.display = coTheSua ? '' : 'none';
 
   document.getElementById('overlayHoDetail').classList.add('show');
 }
@@ -1397,6 +1399,15 @@ function saveHoDetail(){
   };
   const dedupKey = `suaThongTinHoDan:${h.id}`;
   queueAction('suaThongTinHoDan', { id: h.id, fields }, dedupKey, `Sửa thông tin hộ ${h.id}`, true);
+  closeHoDetailModal();
+}
+function deleteHoDetail(){
+  const h = data.find(x=>x.id===hoDetailEditing);
+  if(!h) return;
+  if(!isDotMoCuaHo(h)){ toast('❌ Đợt đã khóa, không thể xóa hộ này'); return; }
+  if(!confirm(`Xác nhận XÓA hộ ${h.id} - "${h.name}"? Dữ liệu sẽ được đánh dấu đã xóa (không hiện nữa), vẫn lưu vết trên Google Sheet để tra cứu khi cần.`)) return;
+  const dedupKey = `xoaHoDan:${h.id}`;
+  queueAction('xoaHoDan', { id: h.id }, dedupKey, `Xóa hộ ${h.id}`);
   closeHoDetailModal();
 }
 
